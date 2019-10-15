@@ -29,7 +29,7 @@ INCLUDEDIR := $(MMCDIR)/src
 AROUTPUT   += -o
 MAKE       := make
 
-LIBOPENCLDIR ?= /usr/local/cuda/lib64
+LIBOPENCLDIR ?= /opt/rocm/opencl/lib/x86_64
 LIBOPENCL=-lOpenCL
 EXTRALIB   += -lm -lstdc++ -L$(LIBOPENCLDIR)
 
