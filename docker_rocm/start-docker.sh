@@ -4,7 +4,7 @@
 
 set -e
 
-IMAGE_NAME="mmcl_rocm"
+IMAGE_NAME="yuhui11/mmcl"
 
 # create named container if arg given (--rm default)
 if [ -z $1 ]; then
@@ -25,4 +25,4 @@ fi
 # start bash
 sudo docker run $CNAME --privileged \
   --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined\
-  $IMAGE_NAME
+  $IMAGE_NAME mmcl -f cube2.inp -s cube2 -n 1e8 -b 0 -D TP -M G -F bin
