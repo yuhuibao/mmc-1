@@ -1102,7 +1102,7 @@ __kernel void mmc_main_loop(const int nphoton, const int ophoton, __constant MCX
 
 	/*launch photons*/
 	for(int i=0;i<nphoton+(idx<ophoton);i++){
-	    onephoton(idx*nphoton+MIN(idx,ophoton)+i,sharedmem+get_local_id(0)*gcfg->reclen,gcfg,node,elem,
+	    onephoton(idx*nphoton+MIN(idx,ophoton)+i,sharedmem+threadIdx.x*gcfg->reclen,gcfg,node,elem,
 	        weight,dref,type,facenb,srcelem, normal,med,n_det,detectedphoton,&energytot,&energyesc,gdetpos,t,&raytet);
 	}
 	energy[idx<<1]=energyesc;
