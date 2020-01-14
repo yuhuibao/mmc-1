@@ -1095,7 +1095,7 @@ __kernel void mmc_main_loop(const int nphoton, const int ophoton, __constant MCX
     __global uint *n_seed, __global int *progress, __global float *energy, __global MCXReporter *reporter){
  
  	RandType t[RAND_BUF_LEN];
-	int idx=get_global_id(0);
+	int idx=blockIdx.x * blockDim.x + threadIdx.x;
 	gpu_rng_init(t,n_seed,idx);
         float  energyesc=0.f, energytot=0.f;
 	int raytet=0;
