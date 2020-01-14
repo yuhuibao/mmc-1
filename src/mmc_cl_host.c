@@ -78,6 +78,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      cl_mem *gweight,*gdref,*gdetphoton,*gseed,*genergy,*greporter;          /*read-write buffers*/
      cl_mem *gprogress=NULL,*gdetected, *gsrcpattern;  /*read-write buffers*/
 
+     MCXParam* gparam;
      uint meshlen=((cfg->method==rtBLBadouelGrid) ? cfg->crop0.z : mesh->ne)<<cfg->nbuffer; // use 4 copies to reduce racing
      
      float  *field,*dref=NULL;
@@ -209,7 +210,8 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
          gdetpos=NULL;
 
      OCL_ASSERT(((gproperty=clCreateBuffer(mcxcontext,RO_MEM, (mesh->prop+1+cfg->isextdet)*sizeof(medium),mesh->med,&status),status)));
-     OCL_ASSERT(((gparam=clCreateBuffer(mcxcontext,RO_MEM, sizeof(MCXParam),&param,&status),status)));
+     
+     OCL_ASSERT((cudaMalloc((void **) &gparam, sizeof(MCXParam));
      cl_mem (*clCreateBufferNV)(cl_context,cl_mem_flags, cl_mem_flags_NV, size_t, void*, cl_int*) = (cl_mem (*)(cl_context,cl_mem_flags, cl_mem_flags_NV, size_t, void*, cl_int*)) clGetExtensionFunctionAddressForPlatform(platform, "clCreateBufferNV");
      if (clCreateBufferNV == NULL)
          OCL_ASSERT(((gprogress[0]=clCreateBuffer(mcxcontext,RW_PTR, sizeof(cl_uint),NULL,&status),status)));
