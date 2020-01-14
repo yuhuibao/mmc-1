@@ -54,14 +54,14 @@ extern cl_event kernelevent;
 
 void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 
-     cl_uint i,j,iter;
-     cl_float t,twindow0,twindow1;
-     cl_float fullload=0.f;
-     cl_float *energy;
-     cl_uint *progress=NULL;
-     cl_uint detected=0,workdev;
+     uint i,j,iter;
+     float t,twindow0,twindow1;
+     float fullload=0.f;
+     float *energy;
+     uint *progress=NULL;
+     uint detected=0,workdev;
 
-     cl_uint tic,tic0,tic1,toc=0,fieldlen;
+     uint tic,tic0,tic1,toc=0,fieldlen;
 
      cl_context mcxcontext;                 // compute mcxcontext
      cl_command_queue *mcxqueue;          // compute command queue
@@ -78,15 +78,15 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      cl_mem *gweight,*gdref,*gdetphoton,*gseed,*genergy,*greporter;          /*read-write buffers*/
      cl_mem *gprogress=NULL,*gdetected, *gsrcpattern;  /*read-write buffers*/
 
-     cl_uint meshlen=((cfg->method==rtBLBadouelGrid) ? cfg->crop0.z : mesh->ne)<<cfg->nbuffer; // use 4 copies to reduce racing
+     uint meshlen=((cfg->method==rtBLBadouelGrid) ? cfg->crop0.z : mesh->ne)<<cfg->nbuffer; // use 4 copies to reduce racing
      
-     cl_float  *field,*dref=NULL;
+     float  *field,*dref=NULL;
 
-     cl_uint   *Pseed;
+     uint   *Pseed;
      float  *Pdet;
      char opt[MAX_PATH_LENGTH]={'\0'};
-     cl_uint detreclen=(2+((cfg->ismomentum)>0))*mesh->prop+(cfg->issaveexit>0)*6+1;
-     cl_uint hostdetreclen=detreclen+1;
+     uint detreclen=(2+((cfg->ismomentum)>0))*mesh->prop+(cfg->issaveexit>0)*6+1;
+     uint hostdetreclen=detreclen+1;
      GPUInfo *gpu=NULL;
 
      MCXParam param={{{cfg->srcpos.x,cfg->srcpos.y,cfg->srcpos.z}}, {{cfg->srcdir.x,cfg->srcdir.y,cfg->srcdir.z}},
