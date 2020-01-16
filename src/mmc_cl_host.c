@@ -74,10 +74,13 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 
      cl_uint  totalcucore;
      cl_uint  devid=0;
-     cl_mem gnode,gelem,gtype,gfacenb,gsrcelem,gnormal,gproperty,gparam,gdetpos; /*read-only buffers*/
+     cl_mem gsrcelem,gnormal,gproperty,gparam,gdetpos; /*read-only buffers*/
+     float3* gnode;
+     int4* gelem, gfacenb,gnormal,gdetpos;
+     int* gtype,gsrcelem;
      cl_mem *gweight,*gdref,*gdetphoton,*gseed,*genergy,*greporter;          /*read-write buffers*/
      cl_mem *gprogress=NULL,*gdetected, *gsrcpattern;  /*read-write buffers*/
-
+     medium* gproperty
      MCXParam* gparam;
      uint meshlen=((cfg->method==rtBLBadouelGrid) ? cfg->crop0.z : mesh->ne)<<cfg->nbuffer; // use 4 copies to reduce racing
      
@@ -195,22 +198,24 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      else
         srand(time(0));
 
-     OCL_ASSERT(((gnode=clCreateBuffer(mcxcontext,RO_MEM, sizeof(float3)*(mesh->nn),mesh->node,&status),status)));
-     OCL_ASSERT(((gelem=clCreateBuffer(mcxcontext,RO_MEM, sizeof(int4)*(mesh->ne),mesh->elem,&status),status)));
-     OCL_ASSERT(((gtype=clCreateBuffer(mcxcontext,RO_MEM, sizeof(int)*(mesh->ne),mesh->type,&status),status)));
-     OCL_ASSERT(((gfacenb=clCreateBuffer(mcxcontext,RO_MEM, sizeof(int4)*(mesh->ne),mesh->facenb,&status),status)));
+
+     OCL_ASSERT(cudaMalloc((void**)&gnode,sizeof(float3)*(mesh->nn)));
+     OCL_ASSERT(cudaMalloc((void**)&gelem,sizeof(int4)*(mesh->ne)));
+     OCL_ASSERT(cudaMalloc((void**)&gtype,sizeof(int)*(mesh->ne)));
+     OCL_ASSERT(cudaMalloc((void**)&gfacenb,sizeof(int4)*(mesh->ne)));
      if(mesh->srcelemlen>0)
-         OCL_ASSERT(((gsrcelem=clCreateBuffer(mcxcontext,RO_MEM, sizeof(int)*(mesh->srcelemlen),mesh->srcelem,&status),status)));
+         OCL_ASSERT(cudaMalloc((void**)&gsrcelem,sizeof(int)*(mesh->srcelemlen));
      else
          gsrcelem=NULL;
-     OCL_ASSERT(((gnormal=clCreateBuffer(mcxcontext,RO_MEM, sizeof(float4)*(mesh->ne)*4,tracer->n,&status),status)));
+     
+     OCL_ASSERT(cudaMalloc((void**)&gnormal,sizeof(float4)*(mesh->ne)*4);
      if(cfg->detpos && cfg->detnum)
-           OCL_ASSERT(((gdetpos=clCreateBuffer(mcxcontext,RO_MEM, cfg->detnum*sizeof(float4),cfg->detpos,&status),status)));
+           
+           OCL_ASSERT(cudaMalloc((void**)&gdetpos,sizeof(float4)*(cfg->detnum));
      else
          gdetpos=NULL;
 
-     OCL_ASSERT(((gproperty=clCreateBuffer(mcxcontext,RO_MEM, (mesh->prop+1+cfg->isextdet)*sizeof(medium),mesh->med,&status),status)));
-     
+     OCL_ASSERT(cudaMalloc((void**)&gproperty,(mesh->prop+1+cfg->isextdet)*sizeof(medium)));
      OCL_ASSERT((cudaMalloc((void **) &gparam, sizeof(MCXParam));
      cl_mem (*clCreateBufferNV)(cl_context,cl_mem_flags, cl_mem_flags_NV, size_t, void*, cl_int*) = (cl_mem (*)(cl_context,cl_mem_flags, cl_mem_flags_NV, size_t, void*, cl_int*)) clGetExtensionFunctionAddressForPlatform(platform, "clCreateBufferNV");
      if (clCreateBufferNV == NULL)
