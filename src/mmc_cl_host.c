@@ -226,14 +226,18 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      *progress=0;
 
      for(i=0;i<workdev;i++){
-       Pseed=(cl_uint*)malloc(sizeof(cl_uint)*gpu[i].autothread*RAND_SEED_WORD_LEN);
-       energy=(cl_float*)calloc(sizeof(cl_float),gpu[i].autothread<<1);
+       Pseed=(uint*)malloc(sizeof(uint)*gpu[i].autothread*RAND_SEED_WORD_LEN);
+       energy=(float*)calloc(sizeof(float),gpu[i].autothread<<1);
        for (j=0; j<gpu[i].autothread*RAND_SEED_WORD_LEN;j++)
 	   Pseed[j]=rand();
-       OCL_ASSERT(((gseed[i]=clCreateBuffer(mcxcontext,RW_MEM, sizeof(cl_uint)*gpu[i].autothread*RAND_SEED_WORD_LEN,Pseed,&status),status)));
-       OCL_ASSERT(((gweight[i]=clCreateBuffer(mcxcontext,RW_MEM, sizeof(float)*fieldlen,field,&status),status)));
+       
+       OCL_ASSERT(cudaMalloc((void**)&gseed[i],sizeof(uint)*gpu[i].autothread*RAND_SEED_WORD_LEN));
+       
+       OCL_ASSERT(cudaMalloc((void**)&gweight[i],sizeof(float)*fieldlen));
        OCL_ASSERT(((gdref[i]=clCreateBuffer(mcxcontext,RW_MEM, sizeof(float)*nflen,dref,&status),status)));
-       OCL_ASSERT(((gdetphoton[i]=clCreateBuffer(mcxcontext,RW_MEM, sizeof(float)*cfg->maxdetphoton*hostdetreclen,Pdet,&status),status)));
+       
+       OCL_ASSERT(((gdetphoton[i]=clCreateBuffer(mcxcontext,RW_MEM, ,Pdet,&status),status)));
+       OCL_ASSERT(cudaMalloc((void**)&gdetphoton[i],sizeof(float)*cfg->maxdetphoton*hostdetreclen));
        OCL_ASSERT(((genergy[i]=clCreateBuffer(mcxcontext,RW_MEM, sizeof(float)*(gpu[i].autothread<<1),energy,&status),status)));
        OCL_ASSERT(((gdetected[i]=clCreateBuffer(mcxcontext,RW_MEM, sizeof(cl_uint),&detected,&status),status)));
        OCL_ASSERT(((greporter[i]=clCreateBuffer(mcxcontext,RW_MEM, sizeof(MCXReporter),&reporter,&status),status)));
