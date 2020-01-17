@@ -74,14 +74,14 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 
      cl_uint  totalcucore;
      cl_uint  devid=0;
-     cl_mem gsrcelem,gnormal,gproperty,gparam,gdetpos; /*read-only buffers*/
+
      float3* gnode;
      int4* gelem, gfacenb,gnormal,gdetpos;
-     int* gtype,gsrcelem;
-     cl_mem *gweight,*gdref,*gdetphoton,*gseed,*genergy,*greporter;          /*read-write buffers*/
-     cl_mem *gprogress=NULL,*gdetected, *gsrcpattern;  /*read-write buffers*/
-     medium* gproperty
+     int* gtype,gsrcelem,gseed,gdetected,*gprogress;
+     float *gweight,*gdref,*gdetphoton,*genergy,*gsrcpattern;          /*read-write buffers*/
+     medium* gproperty;
      MCXParam* gparam;
+     MCXReporter* greporter;
      uint meshlen=((cfg->method==rtBLBadouelGrid) ? cfg->crop0.z : mesh->ne)<<cfg->nbuffer; // use 4 copies to reduce racing
      
      float  *field,*dref=NULL;
@@ -123,15 +123,15 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      mcxqueue= (cl_command_queue*)malloc(workdev*sizeof(cl_command_queue));
      waittoread=(cl_event *)malloc(workdev*sizeof(cl_event));
 
-     gseed=(cl_mem *)malloc(workdev*sizeof(cl_mem));
-     gweight=(cl_mem *)malloc(workdev*sizeof(cl_mem));
-     gdref=(cl_mem *)malloc(workdev*sizeof(cl_mem));
-     gdetphoton=(cl_mem *)malloc(workdev*sizeof(cl_mem));
-     genergy=(cl_mem *)malloc(workdev*sizeof(cl_mem));
-     gprogress=(cl_mem *)malloc(workdev*sizeof(cl_mem));
-     gdetected=(cl_mem *)malloc(workdev*sizeof(cl_mem));
-     gsrcpattern=(cl_mem *)malloc(workdev*sizeof(cl_mem));
-     greporter=(cl_mem *)malloc(workdev*sizeof(cl_mem));
+     gseed=malloc(workdev*sizeof(int));
+     gweight=malloc(workdev*sizeof(float));
+     gdref=malloc(workdev*sizeof(float));
+     gdetphoton=malloc(workdev*sizeof(float));
+     genergy=malloc(workdev*sizeof(float));
+     gprogress=malloc(workdev*sizeof(int));
+     gdetected=malloc(workdev*sizeof(float));
+     gsrcpattern=malloc(workdev*sizeof(float));
+     greporter=malloc(workdev*sizeof(MCXReporter));
 
      /* The block is to move the declaration of prop closer to its use */
      cl_command_queue_properties prop = CL_QUEUE_PROFILING_ENABLE;
@@ -231,20 +231,18 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
        for (j=0; j<gpu[i].autothread*RAND_SEED_WORD_LEN;j++)
 	   Pseed[j]=rand();
        
-       OCL_ASSERT(cudaMalloc((void**)&gseed[i],sizeof(uint)*gpu[i].autothread*RAND_SEED_WORD_LEN));
-       
+       OCL_ASSERT(cudaMalloc((void**)&gseed[i],sizeof(uint)*gpu[i].autothread*RAND_SEED_WORD_LEN));       
        OCL_ASSERT(cudaMalloc((void**)&gweight[i],sizeof(float)*fieldlen));
-       OCL_ASSERT(((gdref[i]=clCreateBuffer(mcxcontext,RW_MEM, sizeof(float)*nflen,dref,&status),status)));
        
-       OCL_ASSERT(((gdetphoton[i]=clCreateBuffer(mcxcontext,RW_MEM, ,Pdet,&status),status)));
+       OCL_ASSERT(cudaMalloc((void**)&gweight[i],sizeof(float)*nfle));
        OCL_ASSERT(cudaMalloc((void**)&gdetphoton[i],sizeof(float)*cfg->maxdetphoton*hostdetreclen));
-       OCL_ASSERT(((genergy[i]=clCreateBuffer(mcxcontext,RW_MEM, sizeof(float)*(gpu[i].autothread<<1),energy,&status),status)));
-       OCL_ASSERT(((gdetected[i]=clCreateBuffer(mcxcontext,RW_MEM, sizeof(cl_uint),&detected,&status),status)));
-       OCL_ASSERT(((greporter[i]=clCreateBuffer(mcxcontext,RW_MEM, sizeof(MCXReporter),&reporter,&status),status)));
+       OCL_ASSERT(cudaMalloc((void**)&genergy[i],sizeof(float)*(gpu[i].autothread<<1));
+       OCL_ASSERT(cudaMallco((void**)&gdetected[i],sizeof(uint)));
+       OCL_ASSERT(cudaMalloc(void**)&greporter[i],sizeof(MCXReporter));
        if(cfg->srctype==MCX_SRC_PATTERN)
-           OCL_ASSERT(((gsrcpattern[i]=clCreateBuffer(mcxcontext,RO_MEM, sizeof(float)*(int)(cfg->srcparam1.w*cfg->srcparam2.w),cfg->srcpattern,&status),status)));
+           OCL_ASSERT(cudaMalloc((void**)&gsrcpattern[i],sizeof(float)*(int)(cfg->srcparam1.w*cfg->srcparam2.w)));
        else if(cfg->srctype==MCX_SRC_PATTERN3D)
-           OCL_ASSERT(((gsrcpattern[i]=clCreateBuffer(mcxcontext,RO_MEM, sizeof(float)*(int)(cfg->srcparam1.x*cfg->srcparam1.y*cfg->srcparam1.z),cfg->srcpattern,&status),status)));
+           OCL_ASSERT(cudaMalloc((void**)&gsrcpattern[i],sizeof(float)*(int)(cfg->srcparam1.x*cfg->srcparam1.y*cfg->srcparam1.z));
        else
            gsrcpattern[i]=NULL;
        free(Pseed);
