@@ -51,6 +51,80 @@ extern cl_event kernelevent;
 /*
    master driver code to run MC simulations
 */
+int mcx_list_gpu(mcconfig *cfg, int *deviceCount, GPUInfo **info){
+
+#if __DEVICE_EMULATION__
+    return 1;
+#else
+    int dev;
+    int activedev=0;
+
+    CUDA_ASSERT(cudaGetDeviceCount(deviceCount));
+    int deviceNum = *deviceCount;
+    if (deviceNum == 0){
+        MCX_FPRINTF(stderr,S_RED"ERROR: No CUDA-capable GPU device found\n"S_RESET);
+        return 0;
+    }
+    *info=(GPUInfo *)calloc(deviceNum,sizeof(GPUInfo));
+    if (cfg->gpuid && cfg->gpuid > deviceCount){
+        MCX_FPRINTF(stderr,S_RED"ERROR: Specified GPU ID is out of range\n"S_RESET);
+        return 0;
+    }
+    // scan from the first device
+    for (dev = 0; dev<deviceNum; dev++) {
+        cudaDeviceProp dp;
+        CUDA_ASSERT(cudaGetDeviceProperties(&dp, dev));
+
+	if(cfg->isgpuinfo==3)
+	   activedev++;
+        else if(cfg->deviceid[dev]=='1'){
+           cfg->deviceid[dev]='\0';
+           cfg->deviceid[activedev]=dev+1;
+           activedev++;
+        }
+        strncpy((*info)[dev].name,dp.name,MAX_SESSION_LENGTH);
+        (*info)[dev].id=dev+1;
+	(*info)[dev].devcount=deviceNum;
+	(*info)[dev].major=dp.major;
+	(*info)[dev].minor=dp.minor;
+	(*info)[dev].globalmem=dp.totalGlobalMem;
+	(*info)[dev].constmem=dp.totalConstMem;
+	(*info)[dev].sharedmem=dp.sharedMemPerBlock;
+	(*info)[dev].regcount=dp.regsPerBlock;
+	(*info)[dev].clock=dp.clockRate;
+	(*info)[dev].sm=dp.multiProcessorCount;
+	(*info)[dev].core=dp.multiProcessorCount*mcx_corecount(dp.major,dp.minor);
+	(*info)[dev].maxmpthread=dp.maxThreadsPerMultiProcessor;
+        (*info)[dev].maxgate=cfg->maxgate;
+        (*info)[dev].autoblock=(*info)[dev].maxmpthread / mcx_smxblock(dp.major,dp.minor);
+        (*info)[dev].autothread=(*info)[dev].autoblock * mcx_smxblock(dp.major,dp.minor) * (*info)[dev].sm;
+
+        if (strncmp(dp.name, "Device Emulation", 16)) {
+	  if(cfg->isgpuinfo){
+	    MCX_FPRINTF(stdout,S_BLUE"=============================   GPU Infomation  ================================\n"S_RESET);
+	    MCX_FPRINTF(stdout,"Device %d of %d:\t\t%s\n",(*info)[dev].id,(*info)[dev].devcount,(*info)[dev].name);
+	    MCX_FPRINTF(stdout,"Compute Capability:\t%u.%u\n",(*info)[dev].major,(*info)[dev].minor);
+	    MCX_FPRINTF(stdout,"Global Memory:\t\t%u B\nConstant Memory:\t%u B\n"
+				"Shared Memory:\t\t%u B\nRegisters:\t\t%u\nClock Speed:\t\t%.2f GHz\n",
+               (unsigned int)(*info)[dev].globalmem,(unsigned int)(*info)[dev].constmem,
+               (unsigned int)(*info)[dev].sharedmem,(unsigned int)(*info)[dev].regcount,(*info)[dev].clock*1e-6f);
+	  #if CUDART_VERSION >= 2000
+	       MCX_FPRINTF(stdout,"Number of MPs:\t\t%u\nNumber of Cores:\t%u\n",
+	          (*info)[dev].sm,(*info)[dev].core);
+	  #endif
+            MCX_FPRINTF(stdout,"SMX count:\t\t%u\n", (*info)[dev].sm);
+	  }
+	}
+    }
+    if(cfg->isgpuinfo==2 && cfg->parentid==mpStandalone){ //list GPU info only
+          exit(0);
+    }
+    if(activedev<MAX_DEVICE)
+        cfg->deviceid[activedev]='\0';
+
+    return activedev;
+#endif
+}
 
 void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 
@@ -104,7 +178,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 		     cfg->e0, cfg->isextdet, meshlen, cfg->nbuffer, ((1 << cfg->nbuffer)-1)};
 
      MCXReporter reporter={0.f};
-     platform=mcx_list_gpu(cfg,&workdev,devices,&gpu);
+     platform=mcx_list_gpu(cfg,&workdev,&gpu);
 
      if(workdev>MAX_DEVICE)
          workdev=MAX_DEVICE;
@@ -122,12 +196,10 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      gsrcpattern=malloc(workdev*sizeof(float));
      greporter=malloc(workdev*sizeof(MCXReporter));
 
-     /* The block is to move the declaration of prop closer to its use */
-     cl_command_queue_properties prop = CL_QUEUE_PROFILING_ENABLE;
 
      totalcucore=0;
      for(i=0;i<workdev;i++){
-         OCL_ASSERT(((mcxqueue[i]=clCreateCommandQueue(mcxcontext,devices[i],prop,&status),status)));
+        
          totalcucore+=gpu[i].core;
 	 if(!cfg->autopilot){
 	    gpu[i].autothread=cfg->nthread;
@@ -176,8 +248,8 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 	fullload=totalcucore;
      }
 
-     field=(cl_float *)calloc(sizeof(cl_float)*meshlen,cfg->maxgate);
-     dref=(cl_float *)calloc(sizeof(cl_float)*mesh->nf,cfg->maxgate);
+     field=(float *)calloc(sizeof(float)*meshlen,cfg->maxgate);
+     dref=(float *)calloc(sizeof(float)*mesh->nf,cfg->maxgate);
      Pdet=(float*)calloc(cfg->maxdetphoton*sizeof(float),hostdetreclen);
 
      fieldlen=meshlen*cfg->maxgate;
