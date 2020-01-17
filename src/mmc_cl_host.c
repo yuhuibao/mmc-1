@@ -63,10 +63,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 
      uint tic,tic0,tic1,toc=0,fieldlen;
 
-     cl_context mcxcontext;                 // compute mcxcontext
-     cl_command_queue *mcxqueue;          // compute command queue
-     cl_program mcxprogram;                 // compute mcxprogram
-     cl_kernel *mcxkernel;                   // compute mcxkernel
+     
      cl_int status = 0;
      cl_device_id devices[MAX_DEVICE];
      cl_event * waittoread;
@@ -114,14 +111,6 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      if(devices == NULL || workdev==0)
          mcx_error(-99,(char*)("Unable to find devices!"),__FILE__,__LINE__);
 
-     cl_context_properties cps[3]={CL_CONTEXT_PLATFORM, (cl_context_properties)platform, 0};
-
-     /* Use NULL for backward compatibility */
-     cl_context_properties* cprops=(platform==NULL)?NULL:cps;
-     OCL_ASSERT(((mcxcontext=clCreateContextFromType(cprops,CL_DEVICE_TYPE_ALL,NULL,NULL,&status),status)));
-
-     mcxqueue= (cl_command_queue*)malloc(workdev*sizeof(cl_command_queue));
-     waittoread=(cl_event *)malloc(workdev*sizeof(cl_event));
 
      gseed=malloc(workdev*sizeof(int));
      gweight=malloc(workdev*sizeof(float));
