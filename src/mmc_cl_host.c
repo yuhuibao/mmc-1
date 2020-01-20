@@ -321,7 +321,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 
 
      for(i=0;i<workdev;i++){
-         cl_int threadphoton, oddphotons;
+         int threadphoton, oddphotons;
 
          threadphoton=(int)(cfg->nphoton*cfg->workload[i]/(fullload*gpu[i].autothread*cfg->respin));
          oddphotons=(int)(cfg->nphoton*cfg->workload[i]/(fullload*cfg->respin)-threadphoton*gpu[i].autothread);
@@ -329,30 +329,6 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
          MMC_FPRINTF(cfg->flog,"- [device %d(%d): %s] threadph=%d oddphotons=%d np=%.1f nthread=%d nblock=%d repetition=%d\n",i, gpu[i].id, gpu[i].name,threadphoton,oddphotons,
                cfg->nphoton*cfg->workload[i]/fullload,(int)gpu[i].autothread,(int)gpu[i].autoblock,cfg->respin);
 
-	 OCL_ASSERT(((mcxkernel[i] = clCreateKernel(mcxprogram, "mmc_main_loop", &status),status)));
-	 OCL_ASSERT((clSetKernelArg(mcxkernel[i], 0, sizeof(cl_uint),(void*)&threadphoton)));
-         OCL_ASSERT((clSetKernelArg(mcxkernel[i], 1, sizeof(cl_uint),(void*)&oddphotons)));
-	 OCL_ASSERT((clSetKernelArg(mcxkernel[i], 2, sizeof(cl_mem), (void*)&gparam)));
-	 OCL_ASSERT((clSetKernelArg(mcxkernel[i], 3, cfg->issavedet? sizeof(cl_float)*((int)gpu[i].autoblock)*detreclen : sizeof(int), NULL)));
-	 OCL_ASSERT((clSetKernelArg(mcxkernel[i], 4, sizeof(cl_mem), (void*)&gnode)));
-	 OCL_ASSERT((clSetKernelArg(mcxkernel[i], 5, sizeof(cl_mem), (void*)&gelem)));
-	 OCL_ASSERT((clSetKernelArg(mcxkernel[i], 6, sizeof(cl_mem), (void*)(gweight+i))));
-	 OCL_ASSERT((clSetKernelArg(mcxkernel[i], 7, sizeof(cl_mem), (void*)(gdref+i))));
-	 OCL_ASSERT((clSetKernelArg(mcxkernel[i], 8, sizeof(cl_mem), (void*)&gtype)));
-	 OCL_ASSERT((clSetKernelArg(mcxkernel[i], 9, sizeof(cl_mem), (void*)&gfacenb)));
-	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],10, sizeof(cl_mem), (void*)&gsrcelem)));	 
-	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],11, sizeof(cl_mem), (void*)&gnormal)));
-	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],12, sizeof(cl_mem), (void*)&gproperty)));
-	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],13, sizeof(cl_mem), (void*)&gdetpos)));
-	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],14, sizeof(cl_mem), (void*)(gdetphoton+i))));
-	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],15, sizeof(cl_mem), (void*)(gdetected+i))));
-	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],16, sizeof(cl_mem), (void*)(gseed+i))));
-	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],17, sizeof(cl_mem), (void*)(gprogress))));
-	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],18, sizeof(cl_mem), (void*)(genergy+i))));
-	 OCL_ASSERT((clSetKernelArg(mcxkernel[i],19, sizeof(cl_mem), (void*)(greporter+i))));
-	// OCL_ASSERT((clSetKernelArg(mcxkernel[i], 8, sizeof(cl_mem), (void*)(gsrcpattern+i))));
-     }
-     MMC_FPRINTF(cfg->flog,"set kernel arguments complete : %d ms %d\n",GetTimeMillis()-tic, param.method);fflush(cfg->flog);
 
      if(cfg->exportfield==NULL)
          cfg->exportfield=mesh->weight;
