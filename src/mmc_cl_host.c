@@ -51,27 +51,26 @@ extern cl_event kernelevent;
 /*
    master driver code to run MC simulations
 */
-int mcx_list_gpu(mcconfig *cfg, int *deviceCount, GPUInfo **info){
+int mcx_list_gpu(Config *cfg, GPUInfo **info){
 
 #if __DEVICE_EMULATION__
     return 1;
 #else
     int dev;
-    int activedev=0;
+    int deviceCount,activedev=0;
 
-    CUDA_ASSERT(cudaGetDeviceCount(deviceCount));
-    int deviceNum = *deviceCount;
-    if (deviceNum == 0){
+    CUDA_ASSERT(cudaGetDeviceCount(&deviceCount));
+    if (deviceCount == 0){
         MCX_FPRINTF(stderr,S_RED"ERROR: No CUDA-capable GPU device found\n"S_RESET);
         return 0;
     }
-    *info=(GPUInfo *)calloc(deviceNum,sizeof(GPUInfo));
+    *info=(GPUInfo *)calloc(deviceCount,sizeof(GPUInfo));
     if (cfg->gpuid && cfg->gpuid > deviceCount){
         MCX_FPRINTF(stderr,S_RED"ERROR: Specified GPU ID is out of range\n"S_RESET);
         return 0;
     }
     // scan from the first device
-    for (dev = 0; dev<deviceNum; dev++) {
+    for (dev = 0; dev<deviceCount; dev++) {
         cudaDeviceProp dp;
         CUDA_ASSERT(cudaGetDeviceProperties(&dp, dev));
 
@@ -84,7 +83,7 @@ int mcx_list_gpu(mcconfig *cfg, int *deviceCount, GPUInfo **info){
         }
         strncpy((*info)[dev].name,dp.name,MAX_SESSION_LENGTH);
         (*info)[dev].id=dev+1;
-	(*info)[dev].devcount=deviceNum;
+	(*info)[dev].devcount=deviceCount;
 	(*info)[dev].major=dp.major;
 	(*info)[dev].minor=dp.minor;
 	(*info)[dev].globalmem=dp.totalGlobalMem;
@@ -147,18 +146,29 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      cl_uint  devid=0;
 
      float3* gnode;
-     int4* gelem, gfacenb,gnormal,gdetpos;
-     int* gtype,gsrcelem,gseed,gdetected,*gprogress;
-     float *gweight,*gdref,*gdetphoton,*genergy,*gsrcpattern;          /*read-write buffers*/
+     int4 *gelem, *gfacenb,*gnormal,*gdetpos;
+     int *gtype,*gsrcelem;
+     int **gseed,**gdetected,**gprogress;
+     float **gweight,**gdref,**gdetphoton,**genergy,**gsrcpattern;          /*read-write buffers*/
      medium* gproperty;
      MCXParam* gparam;
-     MCXReporter* greporter;
+     MCXReporter** greporter;
      uint meshlen=((cfg->method==rtBLBadouelGrid) ? cfg->crop0.z : mesh->ne)<<cfg->nbuffer; // use 4 copies to reduce racing
      
      float  *field,*dref=NULL;
 
      uint   *Pseed;
      float  *Pdet;
+
+     gseed=(int**)malloc(workdev*sizeof(int*));
+     gweight=(float**)malloc(workdev*sizeof(float*));
+     gdref=(float**)malloc(workdev*sizeof(float*));
+     gdetphoton=(float**)malloc(workdev*sizeof(float*));
+     genergy=(float**)malloc(workdev*sizeof(float*));
+     gprogress=(int**)malloc(workdev*sizeof(int*));
+     gdetected=(int**)malloc(workdev*sizeof(int*));
+     gsrcpattern=(float**)malloc(workdev*sizeof(float*));
+     greporter=(MCXReporter**)malloc(workdev*sizeof(MCXReporter*));
      char opt[MAX_PATH_LENGTH]={'\0'};
      uint detreclen=(2+((cfg->ismomentum)>0))*mesh->prop+(cfg->issaveexit>0)*6+1;
      uint hostdetreclen=detreclen+1;
@@ -178,7 +188,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 		     cfg->e0, cfg->isextdet, meshlen, cfg->nbuffer, ((1 << cfg->nbuffer)-1)};
 
      MCXReporter reporter={0.f};
-     platform=mcx_list_gpu(cfg,&workdev,&gpu);
+     workdev=mcx_list_gpu(cfg,&gpu);
 
      if(workdev>MAX_DEVICE)
          workdev=MAX_DEVICE;
@@ -186,15 +196,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
          mcx_error(-99,(char*)("Unable to find devices!"),__FILE__,__LINE__);
 
 
-     gseed=malloc(workdev*sizeof(int));
-     gweight=malloc(workdev*sizeof(float));
-     gdref=malloc(workdev*sizeof(float));
-     gdetphoton=malloc(workdev*sizeof(float));
-     genergy=malloc(workdev*sizeof(float));
-     gprogress=malloc(workdev*sizeof(int));
-     gdetected=malloc(workdev*sizeof(float));
-     gsrcpattern=malloc(workdev*sizeof(float));
-     greporter=malloc(workdev*sizeof(MCXReporter));
+     
 
 
      totalcucore=0;
@@ -236,7 +238,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      }
      cfg->maxgate=(int)((cfg->tend-cfg->tstart)/cfg->tstep+0.5);
      param.maxgate=cfg->maxgate;
-     cl_uint nflen=mesh->nf*cfg->maxgate;
+     uint nflen=mesh->nf*cfg->maxgate;
 
      fullload=0.f;
      for(i=0;i<workdev;i++)
