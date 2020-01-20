@@ -317,58 +317,8 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
          __CUDACC_VER_MAJOR__,__CUDACC_VER_MINOR__,CUDART_VERSION);
 #endif
      MMC_FPRINTF(cfg->flog,"- compiled with: [RNG] %s [Seed Length] %d\n",MCX_RNG_NAME,RAND_SEED_WORD_LEN);
-     MMC_FPRINTF(cfg->flog,"initializing streams ...\t");
+     fflush(cfg->flog);
 
-     MMC_FPRINTF(cfg->flog,"init complete : %d ms\n",GetTimeMillis()-tic);fflush(cfg->flog);
-
-     OCL_ASSERT(((mcxprogram=clCreateProgramWithSource(mcxcontext, 1,(const char **)&(cfg->clsource), NULL, &status),status)));
-
-     if(cfg->optlevel>=1)
-         sprintf(opt,"%s ","-cl-mad-enable -DMCX_USE_NATIVE");
-     if(cfg->optlevel>=3)
-         sprintf(opt+strlen(opt),"%s ","-DMCX_SIMPLIFY_BRANCH -DMCX_VECTOR_INDEX");
-     
-     if((uint)cfg->srctype<sizeof(sourceflag)/sizeof(sourceflag[0]))
-         sprintf(opt+strlen(opt),"%s ",sourceflag[(uint)cfg->srctype]);
-
-     sprintf(opt+strlen(opt),"%s",cfg->compileropt);
-     if(cfg->isatomic)
-         sprintf(opt+strlen(opt)," -DUSE_ATOMIC");
-     if(cfg->issave2pt==0)
-         sprintf(opt+strlen(opt)," -DMCX_SKIP_VOLUME");
-     if(cfg->issavedet)
-         sprintf(opt+strlen(opt)," -DMCX_SAVE_DETECTORS");
-     if(cfg->issaveref)
-         sprintf(opt+strlen(opt)," -DMCX_SAVE_DREF");
-     if(cfg->isreflect)
-         sprintf(opt+strlen(opt)," -DMCX_DO_REFLECTION");
-     if(cfg->method==rtBLBadouelGrid)
-         sprintf(opt+strlen(opt)," -DUSE_DMMC");
-
-     MMC_FPRINTF(cfg->flog,"Building kernel with option: %s\n",opt);
-     status=clBuildProgram(mcxprogram, 0, NULL, opt, NULL, NULL);
-
-     size_t len;
-     // get the details on the error, and store it in buffer
-     clGetProgramBuildInfo(mcxprogram,devices[devid],CL_PROGRAM_BUILD_LOG,0,NULL,&len);
-     if(len>0){
-         char *msg;
-	 int i;
-         msg=(char *)calloc(len,1);
-         clGetProgramBuildInfo(mcxprogram,devices[devid],CL_PROGRAM_BUILD_LOG,len,msg,NULL);
-         for(i=0;i<(int)len;i++)
-             if(msg[i]<='z' && msg[i]>='A'){
-                 MMC_FPRINTF(cfg->flog,"Kernel build log:\n%s\n", msg);
-                 break;
-             }
-	 free(msg);
-     }
-     if(status!=CL_SUCCESS)
-	 mcx_error(-(int)status,(char*)("Error: Failed to build program executable!"),__FILE__,__LINE__);
-
-     MMC_FPRINTF(cfg->flog,"build program complete : %d ms\n",GetTimeMillis()-tic);fflush(cfg->flog);
-
-     mcxkernel=(cl_kernel*)malloc(workdev*sizeof(cl_kernel));
 
      for(i=0;i<workdev;i++){
          cl_int threadphoton, oddphotons;
