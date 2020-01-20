@@ -357,17 +357,13 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 	   param.tend=twindow1;
 
            for(devid=0;devid<workdev;devid++){
-               OCL_ASSERT((clEnqueueWriteBuffer(mcxqueue[devid],gparam,CL_TRUE,0,sizeof(MCXParam),&param, 0, NULL, NULL)));
+               
                OCL_ASSERT((cudaMemcpy(gparam,param,sizeof(MCXParam),cudaMemcpyHostToDevice));
                OCL_ASSERT((clSetKernelArg(mcxkernel[devid],2, sizeof(cl_mem), (void*)&gparam)));
                // launch mcxkernel
-#ifndef USE_OS_TIMER
-               OCL_ASSERT((clEnqueueNDRangeKernel(mcxqueue[devid],mcxkernel[devid],1,NULL,&gpu[devid].autothread,&gpu[devid].autoblock, 0, NULL, &kernelevent)));
-#else
-               OCL_ASSERT((clEnqueueNDRangeKernel(mcxqueue[devid],mcxkernel[devid],1,NULL,&gpu[devid].autothread,&gpu[devid].autoblock, 0, NULL, NULL)));
-#endif
-               OCL_ASSERT((clFlush(mcxqueue[devid])));
-           }
+               mmc_main_loop<<<((gpu[devid].autothread-1)/gpu[devid].autoblock) + 1,gpu[devid].autoblock>>>(htreadphoton,oddphotons,gparam,"sth sharedmem",gnode,gelem,*(gweight+devid),*(gdref+devid),gtype,gfacenb,gsrcelem,gnormal, \
+                        gproperty,gdetpos,*(gdetected+devid)),*(gseed+devid),"progress bar",*(genergy+devid),*(greporter+devid),*(gsrcpattern+devid)
+               }
            if((cfg->debuglevel & MCX_DEBUG_PROGRESS)){
 	     int p0 = 0, ndone=-1;
 
