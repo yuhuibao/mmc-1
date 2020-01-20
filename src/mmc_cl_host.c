@@ -309,13 +309,13 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      mcx_printheader(cfg);
 
      tic=StartTimer();
-     if(cfg->issavedet){
-         MMC_FPRINTF(cfg->flog,"- variant name: [%s] compiled with OpenCL version [%d]\n",
-             "MMC-OpenCL",CL_VERSION_1_0);
-     }else{
-         MMC_FPRINTF(cfg->flog,"- code name: [MMC-OpenCL] compiled with OpenCL version [%d]\n",
-             CL_VERSION_1_0);
-     }
+     #ifdef MCX_TARGET_NAME
+     MCX_FPRINTF(cfg->flog,"- variant name: [%s] compiled by nvcc [%d.%d] with CUDA [%d]\n",
+         "Fermi",__CUDACC_VER_MAJOR__,__CUDACC_VER_MINOR__,CUDART_VERSION);
+#else
+     MCX_FPRINTF(cfg->flog,"- code name: [Vanilla MCX] compiled by nvcc [%d.%d] with CUDA [%d]\n",
+         __CUDACC_VER_MAJOR__,__CUDACC_VER_MINOR__,CUDART_VERSION);
+#endif
      MMC_FPRINTF(cfg->flog,"- compiled with: [RNG] %s [Seed Length] %d\n",MCX_RNG_NAME,RAND_SEED_WORD_LEN);
      MMC_FPRINTF(cfg->flog,"initializing streams ...\t");
 
