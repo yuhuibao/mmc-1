@@ -289,15 +289,11 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      *progress=0;
 
      for(i=0;i<workdev;i++){
-       Pseed=(uint*)malloc(sizeof(uint)*gpu[i].autothread*RAND_SEED_WORD_LEN);
-       energy=(float*)calloc(sizeof(float),gpu[i].autothread<<1);
-       for (j=0; j<gpu[i].autothread*RAND_SEED_WORD_LEN;j++)
-	   Pseed[j]=rand();
        
        OCL_ASSERT(cudaMalloc((void**)&gseed[i],sizeof(uint)*gpu[i].autothread*RAND_SEED_WORD_LEN));       
        OCL_ASSERT(cudaMalloc((void**)&gweight[i],sizeof(float)*fieldlen));
        
-       OCL_ASSERT(cudaMalloc((void**)&gweight[i],sizeof(float)*nfle));
+       OCL_ASSERT(cudaMalloc((void**)&gdref[i],sizeof(float)*nfle));
        OCL_ASSERT(cudaMalloc((void**)&gdetphoton[i],sizeof(float)*cfg->maxdetphoton*hostdetreclen));
        OCL_ASSERT(cudaMalloc((void**)&genergy[i],sizeof(float)*(gpu[i].autothread<<1));
        OCL_ASSERT(cudaMallco((void**)&gdetected[i],sizeof(uint)));
@@ -308,8 +304,6 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
            OCL_ASSERT(cudaMalloc((void**)&gsrcpattern[i],sizeof(float)*(int)(cfg->srcparam1.x*cfg->srcparam1.y*cfg->srcparam1.z));
        else
            gsrcpattern[i]=NULL;
-       free(Pseed);
-       free(energy);
      }
 
      mcx_printheader(cfg);
