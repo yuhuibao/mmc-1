@@ -1089,11 +1089,12 @@ void onephoton(unsigned int id,__local float *ppath, __constant MCXParam *gcfg,_
 	*energyesc+=r.weight;
 }
 
-__kernel void mmc_main_loop(const int nphoton, const int ophoton, __constant MCXParam *gcfg,__local float *sharedmem,
+__kernel void mmc_main_loop(const int nphoton, const int ophoton, __constant MCXParam *gcfg,
     __global float3 *node,__constant int *elem,  __global float *weight, __global float *dref, __constant int *type, __constant int *facenb,  __constant int *srcelem, __constant float4 *normal, 
     __constant medium *med,  __constant float4 *gdetpos,__global float *n_det, __global uint *detectedphoton, 
     __global uint *n_seed, __global int *progress, __global float *energy, __global MCXReporter *reporter){
  
+    extern shared float sharedmem[];
  	RandType t[RAND_BUF_LEN];
 	int idx=blockIdx.x * blockDim.x + threadIdx.x;
 	gpu_rng_init(t,n_seed,idx);
