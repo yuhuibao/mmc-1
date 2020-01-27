@@ -138,7 +138,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 
      
      cl_int status = 0;
-     cl_device_id devices[MAX_DEVICE];
+     
      cl_event * waittoread;
      cl_platform_id platform = NULL;
 
@@ -186,9 +186,13 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 
      if(workdev>MAX_DEVICE)
          workdev=MAX_DEVICE;
-     if(devices == NULL || workdev==0)
+     if(workdev==0)
          mcx_error(-99,(char*)("Unable to find devices!"),__FILE__,__LINE__);
-
+     #ifdef _OPENMP
+     threadid=omp_get_thread_num();
+     #endif
+         if(threadid<MAX_DEVICE && cfg->deviceid[threadid]=='\0')
+           return;
 
      
 
@@ -200,7 +204,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 	 if(!cfg->autopilot){
 	    gpu[i].autothread=cfg->nthread;
 	    gpu[i].autoblock=cfg->nblocksize;
-	    gpu[i].maxgate=cfg->maxgate;
+	    gpu[i].maxgate=cfg->maxgate;      
 	 }else{
              // persistent thread mode
              if (gpu[i].vendor == dvIntelGPU){ // Intel HD graphics GPU
