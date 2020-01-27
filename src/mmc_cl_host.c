@@ -150,6 +150,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      int *gtype,*gsrcelem;
      int *gseed,*gdetected;
      volatile int *progress, *gprogress;
+     cudaEvent_t updateprogress;
      float *gweight,*gdref,*gdetphoton,*genergy,*gsrcpattern;          /*read-write buffers*/
      medium* gproperty;
      MCXParam* gparam;
