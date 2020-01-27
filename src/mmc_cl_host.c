@@ -354,8 +354,8 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
                OCL_ASSERT((cudaMemcpy(gparam,param,sizeof(MCXParam),cudaMemcpyHostToDevice));
                OCL_ASSERT((clSetKernelArg(mcxkernel[devid],2, sizeof(cl_mem), (void*)&gparam)));
                // launch mcxkernel
-               mmc_main_loop<<<((gpu[devid].autothread-1)/gpu[devid].autoblock) + 1,gpu[devid].autoblock,cfg->issavedet? sizeof(cl_float)*((int)gpu[i].autoblock)*detreclen : sizeof(int)>>>(htreadphoton,oddphotons,gparam,gnode,gelem,*(gweight+devid),*(gdref+devid),gtype,gfacenb,gsrcelem,gnormal, \
-                        gproperty,gdetpos,*(gdetected+devid)),*(gseed+devid),"progress bar",*(genergy+devid),*(greporter+devid),*(gsrcpattern+devid)
+               mmc_main_loop<<<((gpu[devid].autothread-1)/gpu[devid].autoblock) + 1,gpu[devid].autoblock,cfg->issavedet? sizeof(cl_float)*((int)gpu[i].autoblock)*detreclen : sizeof(int)>>>(threadphoton,oddphotons,gparam,gnode,gelem,*(gweight+devid),*(gdref+devid),gtype,gfacenb,gsrcelem,gnormal, \
+                        gproperty,gdetpos,*(gdetected+devid)),*(gseed+devid),"progress bar",*(genergy+devid),*(greporter+devid))
                }
            if((cfg->debuglevel & MCX_DEBUG_PROGRESS)){
 	     int p0 = 0, ndone=-1;
