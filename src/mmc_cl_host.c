@@ -133,7 +133,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      float *energy;
      
      uint detected=0,workdev;
-
+     int gpuid, threadid=0;
      uint tic,tic0,tic1,toc=0,fieldlen;
 
      
@@ -194,7 +194,10 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
          if(threadid<MAX_DEVICE && cfg->deviceid[threadid]=='\0')
            return;
 
-     
+     gpuid=cfg->deviceid[threadid]-1;
+     if(gpuid<0)
+          mcx_error(-1,"GPU ID must be non-zero",__FILE__,__LINE__);
+     CUDA_ASSERT(cudaSetDevice(gpuid));
 
 
      totalcucore=0;
