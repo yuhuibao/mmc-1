@@ -148,12 +148,12 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      float3* gnode;
      int4 *gelem, *gfacenb,*gnormal,*gdetpos;
      int *gtype,*gsrcelem;
-     int **gseed,**gdetected;
+     int *gseed,*gdetected;
      volatile int *progress, *gprogress;
-     float **gweight,**gdref,**gdetphoton,**genergy,**gsrcpattern;          /*read-write buffers*/
+     float *gweight,*gdref,*gdetphoton,*genergy,*gsrcpattern;          /*read-write buffers*/
      medium* gproperty;
      MCXParam* gparam;
-     MCXReporter** greporter;
+     MCXReporter* greporter;
      uint meshlen=((cfg->method==rtBLBadouelGrid) ? cfg->crop0.z : mesh->ne)<<cfg->nbuffer; // use 4 copies to reduce racing
      
      float  *field,*dref=NULL;
@@ -161,15 +161,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      uint   *Pseed;
      float  *Pdet;
 
-     gseed=(int**)malloc(workdev*sizeof(int*));
-     gweight=(float**)malloc(workdev*sizeof(float*));
-     gdref=(float**)malloc(workdev*sizeof(float*));
-     gdetphoton=(float**)malloc(workdev*sizeof(float*));
-     genergy=(float**)malloc(workdev*sizeof(float*));
-     gprogress=(int**)malloc(workdev*sizeof(int*));
-     gdetected=(int**)malloc(workdev*sizeof(int*));
-     gsrcpattern=(float**)malloc(workdev*sizeof(float*));
-     greporter=(MCXReporter**)malloc(workdev*sizeof(MCXReporter*));
+     
      char opt[MAX_PATH_LENGTH]={'\0'};
      uint detreclen=(2+((cfg->ismomentum)>0))*mesh->prop+(cfg->issaveexit>0)*6+1;
      uint hostdetreclen=detreclen+1;
