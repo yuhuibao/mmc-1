@@ -199,7 +199,18 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
           mcx_error(-1,"GPU ID must be non-zero",__FILE__,__LINE__);
      CUDA_ASSERT(cudaSetDevice(gpuid));
 
+#pragma omp master
+{
+     if(cfg->exportfield==NULL)
+         cfg->exportfield=mesh->weight;
+     if(cfg->exportdetected==NULL)
+         cfg->exportdetected=(float*)malloc(hostdetreclen*cfg->maxdetphoton*sizeof(float));
 
+     cfg->energytot=0.f;
+     cfg->energyesc=0.f;
+     cfg->runtime=0;
+}
+#pragma omp barrier
 
 	 if(!cfg->autopilot){
 	    gpu[gpuid].autothread=cfg->nthread;
@@ -314,14 +325,6 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
                cfg->nphoton*cfg->workload[i]/fullload,(int)gpu[i].autothread,(int)gpu[i].autoblock,cfg->respin);
 
 
-     if(cfg->exportfield==NULL)
-         cfg->exportfield=mesh->weight;
-     if(cfg->exportdetected==NULL)
-         cfg->exportdetected=(float*)malloc(hostdetreclen*cfg->maxdetphoton*sizeof(float));
-
-     cfg->energytot=0.f;
-     cfg->energyesc=0.f;
-     cfg->runtime=0;
 
      //simulate for all time-gates in maxgate groups per run
 
