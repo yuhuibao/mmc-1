@@ -296,10 +296,13 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
        else
            gsrcpattern[i]=NULL;
      }
+     tic=StartTimer();
 
+#pragma omp master
+{
      mcx_printheader(cfg);
 
-     tic=StartTimer();
+     
      #ifdef MCX_TARGET_NAME
      MCX_FPRINTF(cfg->flog,"- variant name: [%s] compiled by nvcc [%d.%d] with CUDA [%d]\n",
          "Fermi",__CUDACC_VER_MAJOR__,__CUDACC_VER_MINOR__,CUDART_VERSION);
@@ -309,13 +312,10 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 #endif
      MMC_FPRINTF(cfg->flog,"- compiled with: [RNG] %s [Seed Length] %d\n",MCX_RNG_NAME,RAND_SEED_WORD_LEN);
      fflush(cfg->flog);
+}
+#pragma omp barrier
 
-
-     for(i=0;i<workdev;i++){
-         int threadphoton, oddphotons;
-
-         threadphoton=(int)(cfg->nphoton*cfg->workload[i]/(fullload*gpu[i].autothread*cfg->respin));
-         oddphotons=(int)(cfg->nphoton*cfg->workload[i]/(fullload*cfg->respin)-threadphoton*gpu[i].autothread);
+     
 
          MMC_FPRINTF(cfg->flog,"- [device %d(%d): %s] threadph=%d oddphotons=%d np=%.1f nthread=%d nblock=%d repetition=%d\n",i, gpu[i].id, gpu[i].name,threadphoton,oddphotons,
                cfg->nphoton*cfg->workload[i]/fullload,(int)gpu[i].autothread,(int)gpu[i].autoblock,cfg->respin);
@@ -559,4 +559,4 @@ is more than what your have specified (%d), please use the -H option to specify 
      free(field);
      if(Pdet)free(Pdet);
      free(dref);
-}
+
