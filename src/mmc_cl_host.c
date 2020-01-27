@@ -200,35 +200,12 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      CUDA_ASSERT(cudaSetDevice(gpuid));
 
 
-     totalcucore=0;
-     for(i=0;i<workdev;i++){
-        
-         totalcucore+=gpu[i].core;
+
 	 if(!cfg->autopilot){
-	    gpu[i].autothread=cfg->nthread;
-	    gpu[i].autoblock=cfg->nblocksize;
-	    gpu[i].maxgate=cfg->maxgate;      
-	 }else{
-             // persistent thread mode
-             if (gpu[i].vendor == dvIntelGPU){ // Intel HD graphics GPU
-                 gpu[i].autoblock  = 64;
-                 gpu[i].autothread = gpu[i].autoblock * 7 * gpu[i].sm; // 7 thread x SIMD-16 per Exec Unit (EU)
-	     }else if (gpu[i].vendor == dvAMD){ // AMD GPU 
-		 gpu[i].autoblock  = 64;
-		 gpu[i].autothread = 2560 * gpu[i].sm; // 40 wavefronts * 64 threads/wavefront
-             }else if(gpu[i].vendor == dvNVIDIA){
-	       if (gpu[i].major == 2 || gpu[i].major == 3) { // fermi 2.x, kepler 3.x : max 7 blks per SM, 8 works better
-                 gpu[i].autoblock  = 128;
-                 gpu[i].autothread = gpu[i].autoblock * 8 * gpu[i].sm;
-               }else if (gpu[i].major == 5) { // maxwell 5.x
-                 gpu[i].autoblock  = 64;
-                 gpu[i].autothread = gpu[i].autoblock * 16 * gpu[i].sm;
-               }else if (gpu[i].major >= 6) { // pascal 6.x : max 32 blks per SM
-                 gpu[i].autoblock  = 64;
-                 gpu[i].autothread = gpu[i].autoblock * 64 * gpu[i].sm;
-	       }
-             }
-         }
+	    gpu[gpuid].autothread=cfg->nthread;
+	    gpu[gpuid].autoblock=cfg->nblocksize;
+	    gpu[gpuid].maxgate=cfg->maxgate;      
+	 }
 	 if(gpu[i].autothread%gpu[i].autoblock)
      	    gpu[i].autothread=(gpu[i].autothread/gpu[i].autoblock)*gpu[i].autoblock;
          if(gpu[i].maxgate==0 && meshlen>0){
@@ -236,7 +213,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
              gpu[i].maxgate=(gpu[i].globalmem-needmem)/meshlen;
              gpu[i].maxgate=MIN(((cfg->tend-cfg->tstart)/cfg->tstep+0.5),gpu[i].maxgate);     
 	 }
-     }
+     
      cfg->maxgate=(int)((cfg->tend-cfg->tstart)/cfg->tstep+0.5);
      param.maxgate=cfg->maxgate;
      uint nflen=mesh->nf*cfg->maxgate;
