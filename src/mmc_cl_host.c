@@ -131,7 +131,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      float t,twindow0,twindow1;
      float fullload=0.f;
      float *energy;
-     uint *progress=NULL;
+     
      uint detected=0,workdev;
 
      uint tic,tic0,tic1,toc=0,fieldlen;
@@ -148,7 +148,8 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      float3* gnode;
      int4 *gelem, *gfacenb,*gnormal,*gdetpos;
      int *gtype,*gsrcelem;
-     int **gseed,**gdetected,**gprogress;
+     int **gseed,**gdetected;
+     volatile int *progress, *gprogress;
      float **gweight,**gdref,**gdetphoton,**genergy,**gsrcpattern;          /*read-write buffers*/
      medium* gproperty;
      MCXParam* gparam;
