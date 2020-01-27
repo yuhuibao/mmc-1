@@ -275,12 +275,8 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 
      OCL_ASSERT(cudaMalloc((void**)&gproperty,(mesh->prop+1+cfg->isextdet)*sizeof(medium)));
      OCL_ASSERT((cudaMalloc((void **) &gparam, sizeof(MCXParam));
-     cl_mem (*clCreateBufferNV)(cl_context,cl_mem_flags, cl_mem_flags_NV, size_t, void*, cl_int*) = (cl_mem (*)(cl_context,cl_mem_flags, cl_mem_flags_NV, size_t, void*, cl_int*)) clGetExtensionFunctionAddressForPlatform(platform, "clCreateBufferNV");
-     if (clCreateBufferNV == NULL)
-         OCL_ASSERT(((gprogress[0]=clCreateBuffer(mcxcontext,RW_PTR, sizeof(cl_uint),NULL,&status),status)));
-     else
-         OCL_ASSERT(((gprogress[0]=clCreateBufferNV(mcxcontext,CL_MEM_READ_WRITE, NV_PIN, sizeof(cl_uint),NULL,&status),status)));
-     progress = (cl_uint *)clEnqueueMapBuffer(mcxqueue[0], gprogress[0], CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint), 0, NULL, NULL, NULL);
+     CUDA_ASSERT(cudaHostAlloc((void **)&progress, sizeof(int), cudaHostAllocMapped));
+     CUDA_ASSERT(cudaHostGetDevicePointer((int **)&gprogress, (int *)progress, 0));
      *progress=0;
 
      for(i=0;i<workdev;i++){
