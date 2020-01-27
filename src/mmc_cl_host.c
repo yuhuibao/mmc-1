@@ -135,8 +135,8 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      uint detected=0,workdev;
      int gpuid, threadid=0;
      uint tic,tic0,tic1,toc=0,fieldlen;
-
-     
+     int threadphoton, oddphotons;
+     dim3 mcgrid, mcblock;
      cl_int status = 0;
      
      cl_event * waittoread;
@@ -217,7 +217,8 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      cfg->maxgate=(int)((cfg->tend-cfg->tstart)/cfg->tstep+0.5);
      param.maxgate=cfg->maxgate;
      uint nflen=mesh->nf*cfg->maxgate;
-
+#pragma omp master
+{
      fullload=0.f;
      for(i=0;i<workdev;i++)
      	fullload+=cfg->workload[i];
@@ -227,11 +228,16 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      	    cfg->workload[i]=gpu[i].core;
 	fullload=totalcucore;
      }
+#pragma omp barrier
 
+     threadphoton=(int)(cfg->nphoton*cfg->workload[i]/(fullload*gpu[threadid].autothread*cfg->respin));
+     oddphotons=(int)(cfg->nphoton*cfg->workload[i]/(fullload*cfg->respin)-threadphoton*gpu[threadid].autothread);
      field=(float *)calloc(sizeof(float)*meshlen,cfg->maxgate);
      dref=(float *)calloc(sizeof(float)*mesh->nf,cfg->maxgate);
      Pdet=(float*)calloc(cfg->maxdetphoton*sizeof(float),hostdetreclen);
 
+     mcgrid.x=gpu[gpuid].autothread/gpu[gpuid].autoblock;
+     mcblock.x=gpu[gpuid].autoblock;
      fieldlen=meshlen*cfg->maxgate;
 
      if(cfg->seed>0)
@@ -339,7 +345,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
                OCL_ASSERT((cudaMemcpy(gparam,param,sizeof(MCXParam),cudaMemcpyHostToDevice));
                OCL_ASSERT((clSetKernelArg(mcxkernel[devid],2, sizeof(cl_mem), (void*)&gparam)));
                // launch mcxkernel
-               mmc_main_loop<<<((gpu[devid].autothread-1)/gpu[devid].autoblock) + 1,gpu[devid].autoblock,cfg->issavedet? sizeof(cl_float)*((int)gpu[i].autoblock)*detreclen : sizeof(int)>>>(threadphoton,oddphotons,gparam,gnode,gelem,*(gweight+devid),*(gdref+devid),gtype,gfacenb,gsrcelem,gnormal, \
+               mmc_main_loop<<<(mcgrid,mcblock,cfg->issavedet? sizeof(cl_float)*((int)gpu[i].autoblock)*detreclen : sizeof(int)>>>(threadphoton,oddphotons,gparam,gnode,gelem,*(gweight+devid),*(gdref+devid),gtype,gfacenb,gsrcelem,gnormal, \
                         gproperty,gdetpos,*(gdetected+devid)),*(gseed+devid),"progress bar",*(genergy+devid),*(greporter+devid))
                }
            if((cfg->debuglevel & MCX_DEBUG_PROGRESS)){
