@@ -289,21 +289,38 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      CUDA_ASSERT(cudaHostGetDevicePointer((int **)&gprogress, (int *)progress, 0));
      *progress=0;
 
-     
+     Pseed=malloc(sizeof(cl_uint)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN);
+     energy=calloc(sizeof(cl_float),gpu[gpuid].autothread<<1);
        
-       OCL_ASSERT(cudaMalloc((void**)&gseed[gpuid],sizeof(uint)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN));       
+       OCL_ASSERT(cudaMalloc((void**)&gseed[gpuid],sizeof(uint)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN));  
+       OCL_ASSERT(cudaMemcpy(gseed[gpuid],Pseed,sizeof(uint)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN));
+
        OCL_ASSERT(cudaMalloc((void**)&gweight[gpuid],sizeof(float)*fieldlen));
-       
-       OCL_ASSERT(cudaMalloc((void**)&gdref[gpuid],sizeof(float)*nfle));
+       OCL_ASSERT(cudaMemcpy(gweight[gpuid],field,sizeof(float)*fieldlen));
+
+
+       OCL_ASSERT(cudaMalloc((void**)&gdref[gpuid],sizeof(float)*nflen));
+       OCL_ASSERT(cudaMemcpy(gdref[gpuid],dref,sizeof(float)*nflen));
+
        OCL_ASSERT(cudaMalloc((void**)&gdetphoton[gpuid],sizeof(float)*cfg->maxdetphoton*hostdetreclen));
+       OCL_ASSERT(cudaMemcpy(gdetphoton[gpuid],Pdet,sizeof(float)*cfg->maxdetphoton*hostdetreclen));
+
        OCL_ASSERT(cudaMalloc((void**)&genergy[gpuid],sizeof(float)*(gpu[gpuid].autothread<<1));
-       OCL_ASSERT(cudaMallco((void**)&gdetected[gpuid],sizeof(uint)));
+       OCL_ASSERT(cudaMemcpy(genergy[gpuid],energy,sizeof(float)*(gpu[gpuid].autothread<<1));
+
+       OCL_ASSERT(cudaMalloc((void**)&gdetected[gpuid],sizeof(uint)));
+       OCL_ASSERT(cudaMemcpy(gdetected[gpuid],&detected,sizeof(uint)));
+
        OCL_ASSERT(cudaMalloc(void**)&greporter[gpuid],sizeof(MCXReporter));
-       if(cfg->srctype==MCX_SRC_PATTERN)
+       OCL_ASSERT(cudaMemcpy(greporter[gpuid],&reporter,sizeof(MCXReporter)));
+
+       if(cfg->srctype==MCX_SRC_PATTERN){
            OCL_ASSERT(cudaMalloc((void**)&gsrcpattern[gpuid],sizeof(float)*(int)(cfg->srcparam1.w*cfg->srcparam2.w)));
-       else if(cfg->srctype==MCX_SRC_PATTERN3D)
+           OCL_ASSERT(cudaMemcpy(gsrcpattern[gpuid]cfg->srcpattern,sizeof(float)*(int)(cfg->srcparam1.w*cfg->srcparam2.w)));
+       }else if(cfg->srctype==MCX_SRC_PATTERN3D){
            OCL_ASSERT(cudaMalloc((void**)&gsrcpattern[gpuid],sizeof(float)*(int)(cfg->srcparam1.x*cfg->srcparam1.y*cfg->srcparam1.z));
-       else
+           OCL_ASSERT(cudaMemcpy(gsrcpattern[gpuid]cfg->srcpattern,sizeof(float)*(int)(cfg->srcparam1.x*cfg->srcparam1.y*cfg->srcparam1.z))));
+       }else
            gsrcpattern[gpuid]=NULL;
      
      tic=StartTimer();
