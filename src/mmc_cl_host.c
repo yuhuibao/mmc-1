@@ -282,7 +282,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      OCL_ASSERT(cudaMalloc((void**)&gproperty,(mesh->prop+1+cfg->isextdet)*sizeof(medium)));
      OCL_ASSERT(cudaMemcpy(gproperty,mesh->med,(mesh->prop+1+cfg->isextdet)*sizeof(medium),cudaMemcpyHostToDevice));
           
-     OCL_ASSERT((cudaMalloc((void **) &gparam, sizeof(MCXParam)));
+     OCL_ASSERT(cudaMalloc((void **)&gparam, sizeof(MCXParam)));
      OCL_ASSERT(cudaMemcpy(gparam,param,sizeof(MCXParam),cudaMemcpyHostToDevice));
      CUDA_ASSERT(cudaHostAlloc((void **)&progress, sizeof(int), cudaHostAllocMapped));
      CUDA_ASSERT(cudaHostGetDevicePointer((int **)&gprogress, (int *)progress, 0));
@@ -402,16 +402,14 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
            if(cfg->runtime<tic1-tic)
                cfg->runtime=tic1-tic;
 
-           for(devid=0;devid<workdev;devid++){
+           
 	     MCXReporter rep;
-	     OCL_ASSERT((clEnqueueReadBuffer(mcxqueue[devid],greporter[devid],CL_TRUE,0,sizeof(MCXReporter),
-                                            &rep, 0, NULL, waittoread+devid)));
+             OCL_ASSERT(cudaMemcpy(&rep,greporter[gpuid],sizeof(MCXReporter),cudaMemcpyDeviceToHost));
 	     reporter.raytet+=rep.raytet;
              if(cfg->issavedet){
-                OCL_ASSERT((clEnqueueReadBuffer(mcxqueue[devid],gdetected[devid],CL_FALSE,0,sizeof(uint),
-                                            &detected, 0, NULL, NULL)));
-                OCL_ASSERT((clEnqueueReadBuffer(mcxqueue[devid],gdetphoton[devid],CL_TRUE,0,sizeof(float)*cfg->maxdetphoton*hostdetreclen,
-	                                        Pdet, 0, NULL, NULL)));
+                OCL_ASSERT(cudaMemcpy(&detected,gdetected[gpuid],sizeof(uint),cudaMemcpyDeviceToHost));
+               
+                OCL_ASSERT(cudaMemcpy(Pdet,gdetphoton[gpuid],sizeof(float)*cfg->maxdetphoton*hostdetreclen,cudaMemcpyDeviceToHost));
 		if(detected>cfg->maxdetphoton){
 			MMC_FPRINTF(cfg->flog,"WARNING: the detected photon (%d) \
 is more than what your have specified (%d), please use the -H option to specify a greater number\t"
@@ -429,8 +427,8 @@ is more than what your have specified (%d), please use the -H option to specify 
 	     }
 	     if(cfg->issaveref){
 	        float *rawdref=(float*)calloc(sizeof(float),nflen);
-	        OCL_ASSERT((clEnqueueReadBuffer(mcxqueue[devid],gdref[devid],CL_TRUE,0,sizeof(float)*nflen,
-	                                        rawdref, 0, NULL, NULL)));
+
+                OCL_ASSERT(cudaMemcpy(rawdref,gdref[gpuid],sizeof(float)*nflen,cudaMemcpyDeviceToHost));
 		for(i=0;i<nflen;i++)  //accumulate field, can be done in the GPU
 	            dref[i]+=rawdref[i]; //+rawfield[i+fieldlen];
 	        free(rawdref);			
@@ -439,8 +437,8 @@ is more than what your have specified (%d), please use the -H option to specify 
              if(cfg->issave2pt){
                 float *rawfield=(float*)malloc(sizeof(float)*fieldlen);
 
-        	OCL_ASSERT((clEnqueueReadBuffer(mcxqueue[devid],gweight[devid],CL_TRUE,0,sizeof(cl_float)*fieldlen,
-	                                         rawfield, 0, NULL, NULL)));
+        	
+                OCL_ASSERT(cudaMemcpy(rawfield,gweight[gpuid],sizeof(float)*fieldlen,cudaMemcpyDeviceToHost));
         	MMC_FPRINTF(cfg->flog,"transfer complete:        %d ms\n",GetTimeMillis()-tic);  fflush(cfg->flog);
 
                 for(i=0;i<fieldlen;i++)  //accumulate field, can be done in the GPU
@@ -458,10 +456,10 @@ is more than what your have specified (%d), please use the -H option to specify 
         	}
 */
         	if(cfg->isnormalized){
-                    energy=(cl_float*)calloc(sizeof(cl_float),gpu[devid].autothread<<1);
-                    OCL_ASSERT((clEnqueueReadBuffer(mcxqueue[devid],genergy[devid],CL_TRUE,0,sizeof(cl_float)*(gpu[devid].autothread<<1),
-	                                     energy, 0, NULL, NULL)));
-                    for(i=0;i<gpu[devid].autothread;i++){
+                    energy=calloc(sizeof(cl_float),gpu[gupid].autothread<<1);
+                    
+                    OCL_ASSERT(cudaMemcpy(energy,genergy[gpuid],sizeof(float)*(gpu[gpuid].autothread<<1),cudaMemcpyDeviceToHost));
+                    for(i=0;i<gpu[gpuid].autothread;i++){
                 	cfg->energyesc+=energy[(i<<1)];
        	       		cfg->energytot+=energy[(i<<1)+1];
                 	//eabsorp+=Plen[i].z;  // the accumulative absorpted energy near the source
@@ -470,16 +468,14 @@ is more than what your have specified (%d), please use the -H option to specify 
         	}
              }
 	     if(cfg->respin>1 && RAND_SEED_WORD_LEN>1){
-               Pseed=(cl_uint*)malloc(sizeof(cl_uint)*gpu[devid].autothread*RAND_SEED_WORD_LEN);
-               for (i=0; i<gpu[devid].autothread*RAND_SEED_WORD_LEN; i++)
+               Pseed=malloc(sizeof(uint)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN);
+               for (i=0; i<gpu[gpuid].autothread*RAND_SEED_WORD_LEN; i++)
 		   Pseed[i]=rand();
-               OCL_ASSERT((clEnqueueWriteBuffer(mcxqueue[devid],gseed[devid],CL_TRUE,0,sizeof(cl_uint)*gpu[devid].autothread*RAND_SEED_WORD_LEN,
-	                                        Pseed, 0, NULL, NULL)));
-	       OCL_ASSERT((clSetKernelArg(mcxkernel[devid], 15, sizeof(cl_mem), (void*)(gseed+devid))));
+	       OCL_ASSERT(cudaMemcpy(gseed[gpuid],Pseed,sizeof(cl_uint)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN,cudaMemcpyHostToDevice));
 	       free(Pseed);
 	     }
-             OCL_ASSERT((clFinish(mcxqueue[devid])));
-           }// loop over work devices
+             
+           // loop over work devices
        }// iteration
      }// time gates
 
