@@ -229,7 +229,6 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      param.maxgate=cfg->maxgate;
      uint nflen=mesh->nf*cfg->maxgate;
 #pragma omp master
-{
      fullload=0.f;
      for(i=0;i<workdev;i++)
      	fullload+=cfg->workload[i];
@@ -258,23 +257,34 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 
 
      OCL_ASSERT(cudaMalloc((void**)&gnode,sizeof(float3)*(mesh->nn)));
+     OCL_ASSERT(cudaMemcpy(gnode,mesh->node,sizeof(float3)*(mesh->nn),cudaMemcpyHostToDevice)));
      OCL_ASSERT(cudaMalloc((void**)&gelem,sizeof(int4)*(mesh->ne)));
+     OCL_ASSERT(cudaMemcpy(gelem,mesh->elem,sizeof(int4)*(mesh->ne),cudaMemcpyHostToDevice));
      OCL_ASSERT(cudaMalloc((void**)&gtype,sizeof(int)*(mesh->ne)));
+     OCL_ASSERT(cudaMemcpy(gtype,mesh->type,sizeof(int)*(mesh->ne),cudaMemcpyHostToDevice));
      OCL_ASSERT(cudaMalloc((void**)&gfacenb,sizeof(int4)*(mesh->ne)));
-     if(mesh->srcelemlen>0)
-         OCL_ASSERT(cudaMalloc((void**)&gsrcelem,sizeof(int)*(mesh->srcelemlen));
+     OCL_ASSERT(cudaMemcpy(gfacenb,mesh->facenb,sizeof(int4)*(mesh->ne),cudaMemcpyHostToDevice));
+     if(mesh->srcelemlen>0){
+         OCL_ASSERT(cudaMalloc((void**)&gsrcelem,sizeof(int)*(mesh->srcelemlen)));
+         OCL_ASSERT(cudaMemcpy(gsrcelem,mesh->srcelem,sizeof(int)*(mesh->srcelemlen),cudaMemcpyHostToDevice));
+     }
      else
          gsrcelem=NULL;
      
-     OCL_ASSERT(cudaMalloc((void**)&gnormal,sizeof(float4)*(mesh->ne)*4);
-     if(cfg->detpos && cfg->detnum)
-           
-           OCL_ASSERT(cudaMalloc((void**)&gdetpos,sizeof(float4)*(cfg->detnum));
+     OCL_ASSERT(cudaMalloc((void**)&gnormal,sizeof(float4)*(mesh->ne)*4));
+     OCL_ASSERT(cudaMemcpy(gnormal,trace->n,sizeof(float4)*(mesh->ne)*4,cudaMemcpyHostToDevice));
+     if(cfg->detpos && cfg->detnum){
+           OCL_ASSERT(cudaMalloc((void**)&gdetpos,sizeof(float4)*(cfg->detnum)));
+           OCL_ASSERT(cudaMemcpy(gdetpos,cfg->detpos,sizeof(float4)*(cfg->detnum),cudaMemcpyHostToDevice));
+     }     
      else
          gdetpos=NULL;
 
      OCL_ASSERT(cudaMalloc((void**)&gproperty,(mesh->prop+1+cfg->isextdet)*sizeof(medium)));
-     OCL_ASSERT((cudaMalloc((void **) &gparam, sizeof(MCXParam));
+     OCL_ASSERT(cudaMemcpy(gproperty,mesh->med,(mesh->prop+1+cfg->isextdet)*sizeof(medium),cudaMemcpyHostToDevice));
+          
+     OCL_ASSERT((cudaMalloc((void **) &gparam, sizeof(MCXParam)));
+     OCL_ASSERT(cudaMemcpy(gparam,param,sizeof(MCXParam),cudaMemcpyHostToDevice));
      CUDA_ASSERT(cudaHostAlloc((void **)&progress, sizeof(int), cudaHostAllocMapped));
      CUDA_ASSERT(cudaHostGetDevicePointer((int **)&gprogress, (int *)progress, 0));
      *progress=0;
