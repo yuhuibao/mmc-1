@@ -51,7 +51,7 @@ extern cl_event kernelevent;
 /*
    master driver code to run MC simulations
 */
-int mcx_list_gpu(Config *cfg, GPUInfo **info){
+int mcx_list_gpu(mcconfig *cfg, GPUInfo **info){
 
 #if __DEVICE_EMULATION__
     return 1;
@@ -256,7 +256,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 
 
      OCL_ASSERT(cudaMalloc((void**)&gnode,sizeof(float3)*(mesh->nn)));
-     OCL_ASSERT(cudaMemcpy(gnode,mesh->node,sizeof(float3)*(mesh->nn),cudaMemcpyHostToDevice)));
+     OCL_ASSERT(cudaMemcpy(gnode,mesh->node,sizeof(float3)*(mesh->nn),cudaMemcpyHostToDevice));
      OCL_ASSERT(cudaMalloc((void**)&gelem,sizeof(int4)*(mesh->ne)));
      OCL_ASSERT(cudaMemcpy(gelem,mesh->elem,sizeof(int4)*(mesh->ne),cudaMemcpyHostToDevice));
      OCL_ASSERT(cudaMalloc((void**)&gtype,sizeof(int)*(mesh->ne)));
@@ -304,20 +304,20 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
        OCL_ASSERT(cudaMalloc((void**)&gdetphoton[gpuid],sizeof(float)*cfg->maxdetphoton*hostdetreclen));
        OCL_ASSERT(cudaMemcpy(gdetphoton[gpuid],Pdet,sizeof(float)*cfg->maxdetphoton*hostdetreclen));
 
-       OCL_ASSERT(cudaMalloc((void**)&genergy[gpuid],sizeof(float)*(gpu[gpuid].autothread<<1));
-       OCL_ASSERT(cudaMemcpy(genergy[gpuid],energy,sizeof(float)*(gpu[gpuid].autothread<<1));
+       OCL_ASSERT(cudaMalloc((void**)&genergy[gpuid],sizeof(float)*(gpu[gpuid].autothread<<1)));
+       OCL_ASSERT(cudaMemcpy(genergy[gpuid],energy,sizeof(float)*(gpu[gpuid].autothread<<1)));
 
        OCL_ASSERT(cudaMalloc((void**)&gdetected[gpuid],sizeof(uint)));
        OCL_ASSERT(cudaMemcpy(gdetected[gpuid],&detected,sizeof(uint)));
 
-       OCL_ASSERT(cudaMalloc(void**)&greporter[gpuid],sizeof(MCXReporter));
+       OCL_ASSERT(cudaMalloc((void**)&greporter[gpuid],sizeof(MCXReporter)));
        OCL_ASSERT(cudaMemcpy(greporter[gpuid],&reporter,sizeof(MCXReporter)));
 
        if(cfg->srctype==MCX_SRC_PATTERN){
            OCL_ASSERT(cudaMalloc((void**)&gsrcpattern[gpuid],sizeof(float)*(int)(cfg->srcparam1.w*cfg->srcparam2.w)));
            OCL_ASSERT(cudaMemcpy(gsrcpattern[gpuid]cfg->srcpattern,sizeof(float)*(int)(cfg->srcparam1.w*cfg->srcparam2.w)));
        }else if(cfg->srctype==MCX_SRC_PATTERN3D){
-           OCL_ASSERT(cudaMalloc((void**)&gsrcpattern[gpuid],sizeof(float)*(int)(cfg->srcparam1.x*cfg->srcparam1.y*cfg->srcparam1.z));
+           OCL_ASSERT(cudaMalloc((void**)&gsrcpattern[gpuid],sizeof(float)*(int)(cfg->srcparam1.x*cfg->srcparam1.y*cfg->srcparam1.z)));
            OCL_ASSERT(cudaMemcpy(gsrcpattern[gpuid]cfg->srcpattern,sizeof(float)*(int)(cfg->srcparam1.x*cfg->srcparam1.y*cfg->srcparam1.z))));
        }else
            gsrcpattern[gpuid]=NULL;
@@ -371,7 +371,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
                
                
                // launch mcxkernel
-               mmc_main_loop<<<(mcgrid,mcblock,cfg->issavedet? sizeof(cl_float)*((int)gpu[i].autoblock)*detreclen : sizeof(int)>>>(threadphoton,oddphotons,gparam,gnode,gelem,gweight,gdref,gtype,gfacenb,gsrcelem,gnormal, \
+               mmc_main_loop<<<mcgrid,mcblock,cfg->issavedet? sizeof(cl_float)*((int)gpu[i].autoblock)*detreclen : sizeof(int)>>>(threadphoton,oddphotons,gparam,gnode,gelem,gweight,gdref,gtype,gfacenb,gsrcelem,gnormal, \
                         gproperty,gdetpos,gdetected,gseed,gprogress,genergy,greporter)
    #pragma omp master
    {            
@@ -460,7 +460,7 @@ is more than what your have specified (%d), please use the -H option to specify 
         	}
 */
         	if(cfg->isnormalized){
-                    energy=calloc(sizeof(cl_float),gpu[gupid].autothread<<1);
+                    energy=calloc(sizeof(cl_float),gpu[gpuid].autothread<<1);
                     
                     OCL_ASSERT(cudaMemcpy(energy,genergy[gpuid],sizeof(float)*(gpu[gpuid].autothread<<1),cudaMemcpyDeviceToHost));
 #pragma omp critical
@@ -485,7 +485,8 @@ is more than what your have specified (%d), please use the -H option to specify 
            // loop over work devices
        }// iteration
      }// time gates
-
+#pragma omp master
+{
      fieldlen=(fieldlen>>cfg->nbuffer);
      field=realloc(field,sizeof(field[0])*fieldlen);
      if(cfg->exportfield){
@@ -537,7 +538,8 @@ is more than what your have specified (%d), please use the -H option to specify 
      MMC_FPRINTF(cfg->flog,"total simulated energy: %.2f\tabsorbed: %5.5f%%\n(loss due to initial specular reflection is excluded in the total)\n",
              cfg->energytot,(cfg->energytot-cfg->energyesc)/cfg->energytot*100.f);
      fflush(cfg->flog);
-
+}
+#pragma omp barrier
      cudaFree(gnode);
      cudaFree(gelem);
      cudaFree(gtype);
@@ -549,7 +551,7 @@ is more than what your have specified (%d), please use the -H option to specify 
      if(cfg->detpos) cudaFree(gdetpos);
 
    
-         cudaFree(gseed[gupid]);
+         cudaFree(gseed[gpuid]);
          cudaFree(gdetphoton[gpuid]);
          cudaFree(gweight[gpuid]);
 	 cudaFree(gdref[gpuid]);
@@ -580,3 +582,4 @@ is more than what your have specified (%d), please use the -H option to specify 
      if(Pdet)free(Pdet);
      free(dref);
 
+}
