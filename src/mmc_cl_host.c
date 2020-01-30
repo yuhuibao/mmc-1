@@ -398,7 +398,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
            tic1=GetTimeMillis();
 	   toc+=tic1-tic0;
            MMC_FPRINTF(cfg->flog,"kernel complete:  \t%d ms\nretrieving flux ... \t",tic1-tic);fflush(cfg->flog);
-
+#pragma omp critical
            if(cfg->runtime<tic1-tic)
                cfg->runtime=tic1-tic;
 
@@ -417,12 +417,16 @@ is more than what your have specified (%d), please use the -H option to specify 
 		}else{
 			MMC_FPRINTF(cfg->flog,"detected %d photons, total: %d\t",detected,cfg->detectedcount+detected);
 		}
+#pragma omp atomic
                 cfg->his.detected+=detected;
                 detected=MIN(detected,cfg->maxdetphoton);
 		if(cfg->exportdetected){
+#pragma omp critical
+{
                         cfg->exportdetected=(float*)realloc(cfg->exportdetected,(cfg->detectedcount+detected)*hostdetreclen*sizeof(float));
 	                memcpy(cfg->exportdetected+cfg->detectedcount*(hostdetreclen),Pdet,detected*(hostdetreclen)*sizeof(float));
                         cfg->detectedcount+=detected;
+}
 		}
 	     }
 	     if(cfg->issaveref){
@@ -459,11 +463,14 @@ is more than what your have specified (%d), please use the -H option to specify 
                     energy=calloc(sizeof(cl_float),gpu[gupid].autothread<<1);
                     
                     OCL_ASSERT(cudaMemcpy(energy,genergy[gpuid],sizeof(float)*(gpu[gpuid].autothread<<1),cudaMemcpyDeviceToHost));
+#pragma omp critical
+{
                     for(i=0;i<gpu[gpuid].autothread;i++){
                 	cfg->energyesc+=energy[(i<<1)];
        	       		cfg->energytot+=energy[(i<<1)+1];
                 	//eabsorp+=Plen[i].z;  // the accumulative absorpted energy near the source
                     }
+}
 		    free(energy);
         	}
              }
@@ -484,6 +491,7 @@ is more than what your have specified (%d), please use the -H option to specify 
      if(cfg->exportfield){
          if(cfg->basisorder==0 || cfg->method==rtBLBadouelGrid){
              for(i=0;i<fieldlen;i++)
+#pragma omp atomic
 	         cfg->exportfield[i]+=field[i];
 	 }else{
              for(i=0;i<cfg->maxgate;i++)
