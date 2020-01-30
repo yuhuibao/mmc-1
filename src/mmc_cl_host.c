@@ -139,11 +139,10 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      dim3 mcgrid, mcblock;
      cl_int status = 0;
      
-     cl_event * waittoread;
-     cl_platform_id platform = NULL;
+     
 
-     cl_uint  totalcucore;
-     cl_uint  devid=0;
+     uint  totalcucore;
+ 
 
      float3* gnode;
      int4 *gelem, *gfacenb,*gnormal,*gdetpos;
@@ -372,7 +371,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
                
                
                // launch mcxkernel
-               mmc_main_loop<<<(mcgrid,mcblock,cfg->issavedet? sizeof(cl_float)*((int)gpu[i].autoblock)*detreclen : sizeof(int)>>>(threadphoton,oddphotons,gparam,gnode,gelem,*(gweight+devid),*(gdref+devid),gtype,gfacenb,gsrcelem,gnormal, \
+               mmc_main_loop<<<(mcgrid,mcblock,cfg->issavedet? sizeof(cl_float)*((int)gpu[i].autoblock)*detreclen : sizeof(int)>>>(threadphoton,oddphotons,gparam,gnode,gelem,gweight,gdref,gtype,gfacenb,gsrcelem,gnormal, \
                         gproperty,gdetpos,gdetected,gseed,gprogress,genergy,greporter)
    #pragma omp master
    {            
