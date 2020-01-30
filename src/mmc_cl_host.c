@@ -241,8 +241,8 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      }
 #pragma omp barrier
 
-     threadphoton=(int)(cfg->nphoton*cfg->workload[i]/(fullload*gpu[threadid].autothread*cfg->respin));
-     oddphotons=(int)(cfg->nphoton*cfg->workload[i]/(fullload*cfg->respin)-threadphoton*gpu[threadid].autothread);
+     threadphoton=(int)(cfg->nphoton*cfg->workload[i]/(fullload*gpu[gpuid].autothread*cfg->respin));
+     oddphotons=(int)(cfg->nphoton*cfg->workload[i]/(fullload*cfg->respin)-threadphoton*gpu[gpuid].autothread);
      field=(float *)calloc(sizeof(float)*meshlen,cfg->maxgate);
      dref=(float *)calloc(sizeof(float)*mesh->nf,cfg->maxgate);
      Pdet=(float*)calloc(cfg->maxdetphoton*sizeof(float),hostdetreclen);
