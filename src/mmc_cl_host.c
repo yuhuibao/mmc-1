@@ -346,7 +346,8 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
                // launch mcxkernel
                mmc_main_loop<<<(mcgrid,mcblock,cfg->issavedet? sizeof(cl_float)*((int)gpu[i].autoblock)*detreclen : sizeof(int)>>>(threadphoton,oddphotons,gparam,gnode,gelem,*(gweight+devid),*(gdref+devid),gtype,gfacenb,gsrcelem,gnormal, \
                         gproperty,gdetpos,gdetected,gseed,gprogress,genergy,greporter)
-               
+   #pragma omp master
+   {            
            if((cfg->debuglevel & MCX_DEBUG_PROGRESS)){
 	     int p0 = 0, ndone=-1;
 
@@ -365,12 +366,8 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
              MMC_FPRINTF(cfg->flog,"\n");
 
            }
-           clEnqueueUnmapMemObject(mcxqueue[0], gprogress[0], progress, 0, NULL, NULL);
-
-           //clWaitForEvents(workdev,waittoread);
-           for(devid=0;devid<workdev;devid++)
-               OCL_ASSERT((clFinish(mcxqueue[devid])));
-
+   }
+           CUDA_ASSERT(cudaDeviceSynchronize());
            tic1=GetTimeMillis();
 	   toc+=tic1-tic0;
            MMC_FPRINTF(cfg->flog,"kernel complete:  \t%d ms\nretrieving flux ... \t",tic1-tic);fflush(cfg->flog);
