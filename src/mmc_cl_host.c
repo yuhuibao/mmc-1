@@ -339,14 +339,14 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 	   param.tstart=twindow0;
 	   param.tend=twindow1;
 
-           for(devid=0;devid<workdev;devid++){
+           
                
                OCL_ASSERT((cudaMemcpy(gparam,param,sizeof(MCXParam),cudaMemcpyHostToDevice));
-               OCL_ASSERT((clSetKernelArg(mcxkernel[devid],2, sizeof(cl_mem), (void*)&gparam)));
+               
                // launch mcxkernel
                mmc_main_loop<<<(mcgrid,mcblock,cfg->issavedet? sizeof(cl_float)*((int)gpu[i].autoblock)*detreclen : sizeof(int)>>>(threadphoton,oddphotons,gparam,gnode,gelem,*(gweight+devid),*(gdref+devid),gtype,gfacenb,gsrcelem,gnormal, \
-                        gproperty,gdetpos,*(gdetected+devid)),*(gseed+devid),"progress bar",*(genergy+devid),*(greporter+devid))
-               }
+                        gproperty,gdetpos,gdetected,gseed,gprogress,genergy,greporter)
+               
            if((cfg->debuglevel & MCX_DEBUG_PROGRESS)){
 	     int p0 = 0, ndone=-1;
 
