@@ -538,28 +538,28 @@ is more than what your have specified (%d), please use the -H option to specify 
              cfg->energytot,(cfg->energytot-cfg->energyesc)/cfg->energytot*100.f);
      fflush(cfg->flog);
 
-     clReleaseMemObject(gnode);
-     clReleaseMemObject(gelem);
-     clReleaseMemObject(gtype);
-     clReleaseMemObject(gfacenb);
-     clReleaseMemObject(gsrcelem);
-     clReleaseMemObject(gnormal);
-     clReleaseMemObject(gproperty);
-     clReleaseMemObject(gparam);
-     if(cfg->detpos) clReleaseMemObject(gdetpos);
+     cudaFree(gnode);
+     cudaFree(gelem);
+     cudaFree(gtype);
+     cudaFree(gfacenb);
+     cudaFree(gsrcelem);
+     cudaFree(gnormal);
+     cudaFree(gproperty);
+     cudaFree(gparam);
+     if(cfg->detpos) cudaFree(gdetpos);
 
-     for(i=0;i<workdev;i++){
-         clReleaseMemObject(gseed[i]);
-         clReleaseMemObject(gdetphoton[i]);
-         clReleaseMemObject(gweight[i]);
-	 clReleaseMemObject(gdref[i]);
-         clReleaseMemObject(genergy[i]);
-         clReleaseMemObject(gprogress[i]);
-         clReleaseMemObject(gdetected[i]);
-         if(gsrcpattern[i]) clReleaseMemObject(gsrcpattern[i]);
-         clReleaseMemObject(greporter[i]);
-         clReleaseKernel(mcxkernel[i]);
-     }
+   
+         cudaFree(gseed[gupid]);
+         cudaFree(gdetphoton[gpuid]);
+         cudaFree(gweight[gpuid]);
+	 cudaFree(gdref[gpuid]);
+         cudaFree(genergy[gpuid]);
+         cudaFree(gprogress[gpuid]);
+         cudaFree(gdetected[gpuid]);
+         if(gsrcpattern[gpuid]) cudaFree(gsrcpattern[gpuid]);
+         cudaFree(greporter[gpuid]);
+         
+     
      free(gseed);
      free(gdetphoton);
      free(gweight);
@@ -568,22 +568,14 @@ is more than what your have specified (%d), please use the -H option to specify 
      free(gprogress);
      free(gdetected);
      free(gsrcpattern);
-     free(mcxkernel);
-
-     free(waittoread);
+     
 
      if(gpu)
         free(gpu);
 
-     for(devid=0;devid<workdev;devid++)
-        clReleaseCommandQueue(mcxqueue[devid]);
+     
 
-     free(mcxqueue);
-     clReleaseProgram(mcxprogram);
-     clReleaseContext(mcxcontext);
-#ifndef USE_OS_TIMER
-     clReleaseEvent(kernelevent);
-#endif
+     
      free(field);
      if(Pdet)free(Pdet);
      free(dref);
