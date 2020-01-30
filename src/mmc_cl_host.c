@@ -279,23 +279,23 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      CUDA_ASSERT(cudaHostGetDevicePointer((int **)&gprogress, (int *)progress, 0));
      *progress=0;
 
-     for(i=0;i<workdev;i++){
+     
        
-       OCL_ASSERT(cudaMalloc((void**)&gseed[i],sizeof(uint)*gpu[i].autothread*RAND_SEED_WORD_LEN));       
-       OCL_ASSERT(cudaMalloc((void**)&gweight[i],sizeof(float)*fieldlen));
+       OCL_ASSERT(cudaMalloc((void**)&gseed[gpuid],sizeof(uint)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN));       
+       OCL_ASSERT(cudaMalloc((void**)&gweight[gpuid],sizeof(float)*fieldlen));
        
-       OCL_ASSERT(cudaMalloc((void**)&gdref[i],sizeof(float)*nfle));
-       OCL_ASSERT(cudaMalloc((void**)&gdetphoton[i],sizeof(float)*cfg->maxdetphoton*hostdetreclen));
-       OCL_ASSERT(cudaMalloc((void**)&genergy[i],sizeof(float)*(gpu[i].autothread<<1));
-       OCL_ASSERT(cudaMallco((void**)&gdetected[i],sizeof(uint)));
-       OCL_ASSERT(cudaMalloc(void**)&greporter[i],sizeof(MCXReporter));
+       OCL_ASSERT(cudaMalloc((void**)&gdref[gpuid],sizeof(float)*nfle));
+       OCL_ASSERT(cudaMalloc((void**)&gdetphoton[gpuid],sizeof(float)*cfg->maxdetphoton*hostdetreclen));
+       OCL_ASSERT(cudaMalloc((void**)&genergy[gpuid],sizeof(float)*(gpu[gpuid].autothread<<1));
+       OCL_ASSERT(cudaMallco((void**)&gdetected[gpuid],sizeof(uint)));
+       OCL_ASSERT(cudaMalloc(void**)&greporter[gpuid],sizeof(MCXReporter));
        if(cfg->srctype==MCX_SRC_PATTERN)
-           OCL_ASSERT(cudaMalloc((void**)&gsrcpattern[i],sizeof(float)*(int)(cfg->srcparam1.w*cfg->srcparam2.w)));
+           OCL_ASSERT(cudaMalloc((void**)&gsrcpattern[gpuid],sizeof(float)*(int)(cfg->srcparam1.w*cfg->srcparam2.w)));
        else if(cfg->srctype==MCX_SRC_PATTERN3D)
-           OCL_ASSERT(cudaMalloc((void**)&gsrcpattern[i],sizeof(float)*(int)(cfg->srcparam1.x*cfg->srcparam1.y*cfg->srcparam1.z));
+           OCL_ASSERT(cudaMalloc((void**)&gsrcpattern[gpuid],sizeof(float)*(int)(cfg->srcparam1.x*cfg->srcparam1.y*cfg->srcparam1.z));
        else
-           gsrcpattern[i]=NULL;
-     }
+           gsrcpattern[gpuid]=NULL;
+     
      tic=StartTimer();
 
 #pragma omp master
