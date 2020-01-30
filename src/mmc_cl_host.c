@@ -317,8 +317,8 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 
      
 
-         MMC_FPRINTF(cfg->flog,"- [device %d(%d): %s] threadph=%d oddphotons=%d np=%.1f nthread=%d nblock=%d repetition=%d\n",i, gpu[i].id, gpu[i].name,threadphoton,oddphotons,
-               cfg->nphoton*cfg->workload[i]/fullload,(int)gpu[i].autothread,(int)gpu[i].autoblock,cfg->respin);
+         MMC_FPRINTF(cfg->flog,"- [device %d(%d): %s] threadph=%d oddphotons=%d np=%.1f nthread=%d nblock=%d repetition=%d\n",gpuid+1, gpu[gpuid].id, gpu[gpuid].name,threadphoton,oddphotons,
+               cfg->nphoton*cfg->workload[gpuid]/fullload,(int)gpu[gpuid].autothread,(int)gpu[gpuid].autoblock,cfg->respin);
 
 
 
