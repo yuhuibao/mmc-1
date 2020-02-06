@@ -263,7 +263,7 @@ enum TOutputDomain {odMesh, odGrid};
 
 typedef ulong  RandType;
 
-static float xorshift128p_nextf (__private RandType t[RAND_BUF_LEN]){
+static __device__ float xorshift128p_nextf (__private RandType t[RAND_BUF_LEN]){
    union {
         ulong  i;
 	float f[2];
@@ -280,25 +280,25 @@ static float xorshift128p_nextf (__private RandType t[RAND_BUF_LEN]){
    return s1.f[0] - 1.0f;
 }
 
-static void copystate(__local float *v1, __private float *v2, int len){
+static __device__ void copystate(__local float *v1, __private float *v2, int len){
     for(int i=0;i<len;i++)
         v1[i]=v2[i];
 }
 
-static float rand_uniform01(__private RandType t[RAND_BUF_LEN]){
+static __device__ float rand_uniform01(__private RandType t[RAND_BUF_LEN]){
     return xorshift128p_nextf(t);
 }
 
-static void xorshift128p_seed (__global uint *seed,RandType t[RAND_BUF_LEN]){
+static __device__ void xorshift128p_seed (__global uint *seed,RandType t[RAND_BUF_LEN]){
     t[0] = (ulong)seed[0] << 32 | seed[1] ;
     t[1] = (ulong)seed[2] << 32 | seed[3];
 }
 
-static void gpu_rng_init(__private RandType t[RAND_BUF_LEN], __global uint *n_seed, int idx){
+static __device__ void gpu_rng_init(__private RandType t[RAND_BUF_LEN], __global uint *n_seed, int idx){
     xorshift128p_seed((n_seed+idx*RAND_SEED_WORD_LEN),t);
 }
 
-float rand_next_scatlen(__private RandType t[RAND_BUF_LEN]){
+float __device__ rand_next_scatlen(__private RandType t[RAND_BUF_LEN]){
     return -MCX_MATHFUN(log)(rand_uniform01(t)+EPS);
 }
 
@@ -343,14 +343,14 @@ inline double atomicadd(__global double *val, const double delta){
 
 #endif
 
-void clearpath(__local float *p, int len){
+__device__ void clearpath(__local float *p, int len){
       uint i;
       for(i=0;i<len;i++)
       	   p[i]=0.f;
 }
 
 #ifdef MCX_SAVE_DETECTORS
-uint finddetector(float3 *p0,__constant float4 *gdetpos,__constant MCXParam *gcfg){
+__device__ uint finddetector(float3 *p0,__constant float4 *gdetpos,__constant MCXParam *gcfg){
       uint i;
       for(i=0;i<gcfg->detnum;i++){
       	if((gdetpos[i].x-p0[0].x)*(gdetpos[i].x-p0[0].x)+
@@ -362,7 +362,7 @@ uint finddetector(float3 *p0,__constant float4 *gdetpos,__constant MCXParam *gcf
       return 0;
 }
 
-void savedetphoton(__global float *n_det,__global uint *detectedphoton,
+__device__ void savedetphoton(__global float *n_det,__global uint *detectedphoton,
                    __local float *ppath,float3 *p0,float3 *v,__constant float4 *gdetpos,
 		   int extdetid, __constant MCXParam *gcfg){
       uint detid=(extdetid<0)? finddetector(p0,gdetpos,gcfg) : extdetid;
@@ -405,7 +405,7 @@ void savedetphoton(__global float *n_det,__global uint *detectedphoton,
  * \param[out] visit: statistics counters of this thread
  */
 
-float branchless_badouel_raytet(ray *r, __constant MCXParam *gcfg,__constant int *elem,__global float *weight,
+ __device__ float branchless_badouel_raytet(ray *r, __constant MCXParam *gcfg,__constant int *elem,__global float *weight,
     int type, __constant int *facenb, __constant float4 *normal, __constant medium *med){
 
 	float Lmin;
@@ -547,7 +547,7 @@ float branchless_badouel_raytet(ray *r, __constant MCXParam *gcfg,__constant int
 
 #ifdef MCX_DO_REFLECTION
 
-float reflectray(__constant MCXParam *gcfg,float3 *c0, int *oldeid,int *eid,int faceid,__private RandType *ran, __constant int *type, __constant float4 *normal, __constant medium *med){
+__device__ float reflectray(__constant MCXParam *gcfg,float3 *c0, int *oldeid,int *eid,int faceid,__private RandType *ran, __constant int *type, __constant float4 *normal, __constant medium *med){
 	/*to handle refractive index mismatch*/
         float3 pnorm={0.f,0.f,0.f};
 	float Icos,Re,Im,Rtotal,tmp0,tmp1,tmp2,n1,n2;
@@ -614,7 +614,7 @@ float reflectray(__constant MCXParam *gcfg,float3 *c0, int *oldeid,int *eid,int 
  * @param[out] pmom: buffer to store momentum transfer data if needed
  */
 
-float mc_next_scatter(float g, float3 *dir,__private RandType *ran, __constant MCXParam *gcfg, float *pmom){
+ __device__ float mc_next_scatter(float g, float3 *dir,__private RandType *ran, __constant MCXParam *gcfg, float *pmom){
 
     float nextslen;
     float sphi,cphi,tmp0,theta,stheta,ctheta,tmp1;
@@ -674,7 +674,7 @@ float mc_next_scatter(float g, float3 *dir,__private RandType *ran, __constant M
  * \param[in] ee: indices of the 4 nodes ee=elem[eid]
  */
 
-void fixphoton(float3 *p,__global float3 *nodes, __constant int *ee){
+ __device__ void fixphoton(float3 *p,__global float3 *nodes, __constant int *ee){
         float3 c0={0.f,0.f,0.f};
 	int i;
         /*calculate element centroid*/
@@ -696,7 +696,7 @@ void fixphoton(float3 *p,__global float3 *nodes, __constant int *ee){
  * \param[in,out] ran: the random number generator states
  */
 
-void launchphoton(__constant MCXParam *gcfg, ray *r, __global float3 *node,__constant int *elem,__constant int *srcelem, __private RandType *ran){
+ __device__ void launchphoton(__constant MCXParam *gcfg, ray *r, __global float3 *node,__constant int *elem,__constant int *srcelem, __private RandType *ran){
         int canfocus=1;
         float3 origin=r->p0;
 
@@ -897,7 +897,7 @@ void launchphoton(__constant MCXParam *gcfg, ray *r, __global float3 *node,__con
  * \param[out] visit: statistics counters of this thread
  */
 
-void onephoton(unsigned int id,__local float *ppath, __constant MCXParam *gcfg,__global float3 *node,__constant int *elem, __global float *weight,__global float *dref,
+ __device__ void onephoton(unsigned int id,__local float *ppath, __constant MCXParam *gcfg,__global float3 *node,__constant int *elem, __global float *weight,__global float *dref,
     __constant int *type, __constant int *facenb,  __constant int *srcelem, __constant float4 *normal, __constant medium *med,
     __global float *n_det, __global uint *detectedphoton, float *energytot, float *energyesc, __constant float4 *gdetpos, __private RandType *ran, int *raytet){
 
