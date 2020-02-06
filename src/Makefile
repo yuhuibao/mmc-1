@@ -1,8 +1,8 @@
 ROOTDIR = ..
 BINARY=mmc
 
-FILES=xorshift128p_rand simpmesh tettracing mcx_utils tictoc mmc cjson/cJSON mmc_host highordermesh mmc_cl_utils mmc_cl_host
-CLPROGRAM=mmc_core
+FILES=xorshift128p_rand simpmesh tettracing mcx_utils tictoc mmc cjson/cJSON mmc_host highordermesh
+CUPROGRAM=mmcx_core mmcx_host
 
 ifeq ($(findstring Darwin,$(PLATFORM)), Darwin)
   EXTRALIB:=-static-libgcc -lgcc_eh
