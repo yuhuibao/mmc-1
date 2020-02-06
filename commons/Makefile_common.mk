@@ -24,7 +24,7 @@ BIN        := bin
 BUILT      := built
 BINDIR     := $(BIN)
 OBJDIR 	   := $(BUILT)
-CCFLAGS    += -c -Wall -g -DMCX_EMBED_CL -fno-strict-aliasing#-pedantic -std=c99 -mfpmath=sse -ffast-math -mtune=core2
+CCFLAGS    += -c -Wall -g -fno-strict-aliasing#-pedantic -std=c99 -mfpmath=sse -ffast-math -mtune=core2
 INCLUDEDIR := $(MMCDIR)/src
 AROUTPUT   += -o
 MAKE       := make
@@ -173,7 +173,7 @@ makedocdir:
 .SUFFIXES : $(OBJSUFFIX) .cpp
 
 ##  Compile .cpp files ##
-$(OBJDIR)/%$(OBJSUFFIX): %.cpp
+$(OBJDIR)/%$(OBJSUFFIX): %.cpp bbbb bbbb bbb
 	@$(ECHO) Building $@
 	$(CXX) $(CCFLAGS) $(USERCCFLAGS) -I$(INCLUDEDIR) -o $@  $<
 
@@ -187,11 +187,10 @@ $(OBJDIR)/%$(OBJSUFFIX): %.c
 	@$(ECHO) Building $@
 	$(CC) $(CCFLAGS) $(USERCCFLAGS) -I$(INCLUDEDIR) -o $@  $<
 
-%$(CLHEADER): %.cl
-	xxd -i $(CLPROGRAM).cl | sed 's/\([0-9a-f]\)$$/\0, 0x00/' > $(CLPROGRAM).clh
+
 
 ##  Link  ##
-$(BINDIR)/$(BINARY): makedirs $(CLSOURCE) $(OBJS)
+$(BINDIR)/$(BINARY): makedirs $(OBJS)
 	@$(ECHO) Building $@
 	$(AR)  $(ARFLAGS) $(AROUTPUT) $@ $(OBJS) $(USERARFLAGS) $(EXTRALIB)
 
