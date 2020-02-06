@@ -26,7 +26,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "mmc_cl_host.h"
+#include "mmcx_host.h"
 #include "mcx_const.h"
 #include "tictoc.h"
 
@@ -40,13 +40,7 @@ necessary data structures. This include the command line options (cfg),
 tetrahedral mesh (mesh) and the ray-tracer precomputed data (tracer).
 *******************************************************************************/
 
-const char *sourceflag[]={"-DMCX_SRC_PENCIL","-DMCX_SRC_ISOTROPIC","-DMCX_SRC_CONE",
-    "-DMCX_SRC_GAUSSIAN","-DMCX_SRC_PLANAR","-DMCX_SRC_PATTERN","-DMCX_SRC_FOURIER",
-    "-DMCX_SRC_ARCSINE","-DMCX_SRC_DISK","-DMCX_SRC_FOURIERX","-DMCX_SRC_FOURIERX2D",
-    "-DMCX_SRC_ZGAUSSIAN","-DMCX_SRC_LINE","-DMCX_SRC_SLIT","-DMCX_SRC_PENCILARRAY",
-    "-DMCX_SRC_PATTERN3D"};
 
-extern cl_event kernelevent;
 /**
    assert cuda memory allocation result
 */

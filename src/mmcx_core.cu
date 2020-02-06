@@ -12,7 +12,7 @@
 **  \section slicense License
 **          GPL v3, see LICENSE.txt for details
 *******************************************************************************/
-
+#include "mmcx_core.h"
 #ifdef __CUDA_ARCH__
   #define __constant const
   #define __private 
