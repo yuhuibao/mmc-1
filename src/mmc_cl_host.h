@@ -6,7 +6,7 @@
 **
 **  Reference:
 **  (Fang2010) Qianqian Fang, "Mesh-based Monte Carlo Method Using Fast Ray-Tracing 
-**          in Plücker Coordinates," Biomed. Opt. Express, 1(1) 165-175 (2010)
+**          in Plï¿½cker Coordinates," Biomed. Opt. Express, 1(1) 165-175 (2010)
 **
 **  (Fang2009) Qianqian Fang and David A. Boas, "Monte Carlo Simulation of Photon 
 **          Migration in 3D Turbid Media Accelerated by Graphics Processing 
@@ -33,18 +33,9 @@
 extern "C" {
 #endif
 
-#ifndef CL_MEM_LOCATION_HOST_NV
-  #define CL_MEM_LOCATION_HOST_NV                     (1 << 0)
-  typedef cl_bitfield         cl_mem_flags_NV;
-#endif
 
-#define RO_MEM             (CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR)
-#define WO_MEM             (CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR)
-#define RW_MEM             (CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR)
-#define RW_PTR             (CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR)
-#define NV_PIN             CL_MEM_LOCATION_HOST_NV
 
-#define OCL_ASSERT(x)  ocl_assess((x),__FILE__,__LINE__)
+#define CUDA_ASSERT(a)      mcx_cu_assess((a),__FILE__,__LINE__) ///< macro to report CUDA errors
 
 #define RAND_SEED_WORD_LEN      4        //48 bit packed with 64bit length
 

@@ -25,21 +25,8 @@ extern "C" {
 
 #define OCL_ASSERT(x)  ocl_assess((x),__FILE__,__LINE__)
 
-#define CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV           0x4000
-#define CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV           0x4001
-#define CL_DEVICE_REGISTERS_PER_BLOCK_NV                0x4002
-#define CL_DEVICE_WARP_SIZE_NV                          0x4003
-#define CL_DEVICE_GPU_OVERLAP_NV                        0x4004
-#define CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV                0x4005
-#define CL_DEVICE_INTEGRATED_MEMORY_NV                  0x4006
 
-#define CL_DEVICE_BOARD_NAME_AMD                        0x4038
-#define CL_DEVICE_SIMD_PER_COMPUTE_UNIT_AMD             0x4040
-#define CL_DEVICE_WAVEFRONT_WIDTH_AMD                   0x4043
-#define CL_DEVICE_GFXIP_MAJOR_AMD                       0x404A
-#define CL_DEVICE_GFXIP_MINOR_AMD                       0x404B
-
-cl_platform_id mcx_list_gpu(mcconfig *cfg,unsigned int *activedev,cl_device_id *activedevlist,GPUInfo **info);
+int mcx_list_gpu(mcconfig *cfg,GPUInfo **info);
 void ocl_assess(int cuerr,const char *file,const int linenum);
 
 #ifdef  __cplusplus
