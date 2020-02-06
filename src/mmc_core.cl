@@ -222,49 +222,8 @@ typedef struct MMC_Ray{
 } ray __attribute__ ((aligned (32)));
 
 
-typedef struct MMC_Parameter {
-  float3 srcpos;
-  float3 srcdir;
-  float  tstart,tend;
-  uint   isreflect,issavedet,issaveexit,ismomentum,isatomic,isspecular;
-  float  Rtstep;
-  float  minenergy;
-  uint   maxdetphoton;
-  uint   maxmedia;
-  uint   detnum;
-  int    voidtime;
-  int    srctype;                    /**< type of the source */
-  float4 srcparam1;                  /**< source parameters set 1 */
-  float4 srcparam2;                  /**< source parameters set 2 */
-  uint   issaveref;     /**<1 save diffuse reflectance at the boundary voxels, 0 do not save*/
-  uint   maxgate;
-  uint   debuglevel;           /**< debug flags */
-  int    reclen;                 /**< record (4-byte per record) number per detected photon */
-  int    outputtype;
-  int    elemlen;
-  int    mcmethod;
-  int    method;
-  float  dstep;
-  float  focus;
-  int    nn, ne, nf;
-  float3 nmin;
-  float  nout;
-  uint   roulettesize;
-  int    srcnum;
-  int4   crop0;
-  int    srcelemlen;
-  float4 bary0;
-  int    e0;
-  int    isextdet;
-  int    framelen;
-  uint   nbuffer;
-  uint   buffermask;
-  //int    issaveseed;
-} MCXParam __attribute__ ((aligned (32)));
 
-typedef struct MMC_Reporter{
-  float  raytet;
-} MCXReporter  __attribute__ ((aligned (32)));
+
 
 typedef struct MMC_medium{
         float mua;                     /**<absorption coeff in 1/mm unit*/
