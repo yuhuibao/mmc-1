@@ -30,23 +30,24 @@
 #include "simpmesh.h"
 #include "tettracing.h"
 
+#define CUDA_ASSERT(a)      mcx_cu_assess((a),__FILE__,__LINE__) ///< macro to report CUDA errors
+
+#define RAND_SEED_WORD_LEN      4        //48 bit packed with 64bit length
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
 
 #define ABS(a)  ((a)<0?-(a):(a))
-#define DETINC	32
 
-#define MAX_ACCUM           1000.f
+#define MCX_DEBUG_RNG       2                   /**< MCX debug flags */
+#define MCX_DEBUG_MOVE      1
+#define MCX_DEBUG_PROGRESS  2048
 
-#define ROULETTE_SIZE       10.f                /**< Russian Roulette size */
+#define MIN(a,b)           ((a)<(b)?(a):(b))
+void mcx_cu_assess(cudaError_t cuerr,const char *file, const int linenum);
 
-#ifdef  MCX_DEBUG
-#define GPUDEBUG(x)        printf x             /**< enable debugging in CPU mode */
-#else
-#define GPUDEBUG(x)
-#endif
 
 
 
