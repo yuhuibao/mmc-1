@@ -26,7 +26,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "mmcx_host.h"
+#include "mmcx_core.h"
 #include "mcx_const.h"
 #include "tictoc.h"
 
@@ -138,7 +138,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      uint tic,tic0,tic1,toc=0,fieldlen;
      int threadphoton, oddphotons;
      dim3 mcgrid, mcblock;
-     cl_int status = 0;
+     int status = 0;
      
      
 

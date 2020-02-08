@@ -21,114 +21,76 @@
   #define __kernel __global__
   #define get_global_id 
 
-  inline __device__ __host__ float3 operator *(float3 a, float3 b){
+  __device__ __host__ float3 operator *(float3 a, float3 b){
       return make_float3(a.x*b.x, a.y*b.y, a.z*b.z);
   }
-  inline __device__ __host__ float3 operator *(float f, float3 v){
+  __device__ __host__ float3 operator *(float f, float3 v){
       return make_float3(v.x*f, v.y*f, v.z*f);
   }
-  inline __device__ __host__ float3 operator *(float3 v, float f){
+  __device__ __host__ float3 operator *(float3 v, float f){
       return make_float3(v.x*f, v.y*f, v.z*f);
   }
-  inline __device__ __host__ void operator *=(float3 & b, float f){
+  __device__ __host__ void operator *=(float3 & b, float f){
       b.x *= f;
       b.y *= f;
       b.z *= f;
   }
-  inline __device__ __host__ float3 operator +(float3 a, float3 b){
+  __device__ __host__ float3 operator +(float3 a, float3 b){
       return make_float3(a.x+b.x, a.y+b.y, a.z+b.z);
   }
-  inline __device__ __host__ void operator +=(float3 & b, float3 a){
+  __device__ __host__ void operator +=(float3 & b, float3 a){
       b.x += a.x;
       b.y += a.y;
       b.z += a.z;
   }
-  inline __device__ __host__ float3 operator -(float3 a, float3 b){
+  __device__ __host__ float3 operator -(float3 a, float3 b){
       return make_float3(a.x-b.x, a.y-b.y, a.z-b.z);
   }
-  inline __device__ __host__ void operator -=(float3 & b, float3 a){
+  __device__ __host__ void operator -=(float3 & b, float3 a){
       b.x -= a.x;
       b.y -= a.y;
       b.z -= a.z;
   }
-  inline __device__ __host__ float3 operator /(float3 v, float f){
+  __device__ float3 operator /(float3 v, float f){
       float inv = 1.0f / f;
       return v * inv;
   }
-  inline __device__ __host__ void operator /=(float3 & b, float f){
+  __device__ void operator /=(float3 & b, float f){
       float inv = 1.0f / f;
       b.x *= inv;
       b.y *= inv;
       b.z *= inv;
   }
 
-  inline __device__ __host__ float4 operator *(float4 a, float4 b){
-      return make_float4(a.x*b.x, a.y*b.y, a.z*b.z, a.w*b.w);
-  }
-  inline __device__ __host__ float4 operator *(float f, float4 v){
-      return make_float4(v.x*f, v.y*f, v.z*f, v.w*f);
-  }
-  inline __device__ __host__ float4 operator *(float4 v, float f){
-      return make_float4(v.x*f, v.y*f, v.z*f, v.w*f);
-  }
-  inline __device__ __host__ void operator *=(float4 & b, float f){
-      b.x *= f;
-      b.y *= f;
-      b.z *= f;
-      b.w *= f;
-  }
-  inline __device__ __host__ float4 operator +(float4 a, float4 b){
+  
+  __device__ float4 operator +(float4 a, float4 b){
       return make_float4(a.x+b.x, a.y+b.y, a.z+b.w, a.w+b.w);
   }
-  inline __device__ __host__ void operator +=(float4 & b, float4 a){
+  __device__ void operator +=(float4 & b, float4 a){
       b.x += a.x;
       b.y += a.y;
       b.z += a.z;
       b.w += a.w;
   }
-  inline __device__ __host__ float4 operator -(float4 a, float4 b){
+  __device__ float4 operator -(float4 a, float4 b){
       return make_float4(a.x-b.x, a.y-b.y, a.z-b.z, a.w-b.w);
   }
-  inline __device__ __host__ void operator -=(float4 & b, float4 a){
+  __device__ void operator -=(float4 & b, float4 a){
       b.x -= a.x;
       b.y -= a.y;
       b.z -= a.z;
       b.w -= a.w;
   }
-  inline __device__ __host__ float3 operator /(float3 a, float3 b){
-      return make_float3(a.x/b.x, a.y/b.y, a.z/b.z);
-  }
-  inline __device__ __host__ float4 operator /(float4 v, float f){
-      float inv = 1.0f / f;
-      return v * inv;
-  }
-  inline __device__ __host__ void operator /=(float4 & b, float f){
-      float inv = 1.0f / f;
-      b.x *= inv;
-      b.y *= inv;
-      b.z *= inv;
-      b.w *= inv;
-  }
-  inline __device__ __host__ float4 operator /(float4 a, float4 b){
-      return make_float4(a.x/b.x, a.y/b.y, a.z/b.z, a.w/b.w);
-  }
+  
 
-  inline __device__ __host__ float dot(float3 a, float3 b){
+  __device__ float dot(float3 a, float3 b){
       return a.x * b.x + a.y * b.y + a.z * b.z;
   }
-  inline __device__ __host__ float dot(float4 a, float4 b){
-      return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
-  }
-  inline __device__ __host__ float clamp(float f, float a, float b){
+  
+  __device__ float clamp(float f, float a, float b){
       return max(a, min(f, b));
   }
-  inline __device__ __host__ float3 clamp(float3 v, float a, float b){
-      return make_float3(clamp(v.x, a, b), clamp(v.y, a, b), clamp(v.z, a, b));
-  }
-
-  inline __device__ __host__ float3 clamp(float3 v, float3 a, float3 b){
-      return make_float3(clamp(v.x, a.x, b.x), clamp(v.y, a.y, b.y), clamp(v.z, a.z, b.z));
-  }
+  
 
   #define FL4(f) make_float4(f,f,f,f)
   #define FL3(f) make_float3(f,f,f)
@@ -201,36 +163,11 @@
 #define F32N(a) ((a) & 0x80000000)          /**<  Macro to test if a floating point is negative */
 #define F32P(a) ((a) ^ 0x80000000)          /**<  Macro to test if a floating point is positive */
 
-typedef struct MMC_Ray{
-	float3 p0;                    /**< current photon position */
-	float3 vec;                   /**< current photon direction vector */
-	float3 pout;                  /**< the intersection position of the ray to the enclosing tet */
-	int eid;                      /**< the index of the enclosing tet (starting from 1) */
-	int faceid;                   /**< the index of the face at which ray intersects with tet */
-	int isend;                    /**< if 1, the scattering event ends before reaching the intersection */
-	float weight;                 /**< photon current weight */
-	float photontimer;            /**< the total time-of-fly of the photon */
-	float slen;                   /**< the remaining unitless scattering length = length*mus  */
-	float Lmove;                  /**< last photon movement length */
-	uint oldidx;
-	float oldweight;
-	//int nexteid;                  /**< the index to the neighboring tet to be moved into */
-	//float4 bary0;                 /**< the Barycentric coordinate of the intersection with the tet */
-	//float slen0;                  /**< initial unitless scattering length = length*mus */
-	//unsigned int photonid;        /**< index of the current photon */
-	//unsigned int posidx;	      /**< launch position index of the photon for pattern source type */
-} ray __attribute__ ((aligned (32)));
 
 
 
 
 
-typedef struct MMC_medium{
-        float mua;                     /**<absorption coeff in 1/mm unit*/
-        float mus;                     /**<scattering coeff in 1/mm unit*/
-        float g;                       /**<anisotropy*/
-        float n;                       /**<refractive index*/
-} medium __attribute__ ((aligned (32)));
 
 __constant int faceorder[]={1,3,2,0,-1};
 __constant int ifaceorder[]={3,0,2,1};
@@ -240,30 +177,20 @@ __constant int out[4][3]={{0,3,1},{3,2,1},{0,2,3},{0,1,2}};
 __constant int facemap[]={2,0,1,3};
 __constant int ifacemap[]={1,2,0,3};
 
-enum TDebugLevel {dlMove=1,dlTracing=2,dlBary=4,dlWeight=8,dlDist=16,dlTracingEnter=32,
-                  dlTracingExit=64,dlEdge=128,dlAccum=256,dlTime=512,dlReflect=1024,
-                  dlProgress=2048,dlExit=4096};
 
-enum TRTMethod {rtPlucker, rtHavel, rtBadouel, rtBLBadouel, rtBLBadouelGrid};   
-enum TMCMethod {mmMCX, mmMCML};
 
-enum TSrcType {stPencil, stIsotropic, stCone, stGaussian, stPlanar,
-               stPattern, stFourier, stArcSin, stDisk, stFourierX, 
-               stFourier2D, stZGaussian, stLine, stSlit};
-enum TOutputType {otFlux, otFluence, otEnergy, otJacobian, otWL, otWP};
-enum TOutputFormat {ofASCII, ofBin, ofJSON, ofUBJSON};
-enum TOutputDomain {odMesh, odGrid};
 
-#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+
+
 
 #define RAND_BUF_LEN       2        //register arrays
 #define RAND_SEED_WORD_LEN      4        //48 bit packed with 64bit length
 #define LOG_MT_MAX         22.1807097779182f
 #define IEEE754_DOUBLE_BIAS     0x3FF0000000000000ul /* Added to exponent.  */
 
-typedef ulong  RandType;
 
-static __device__ float xorshift128p_nextf (__private RandType t[RAND_BUF_LEN]){
+
+__device__ float xorshift128p_nextf (__private RandType t[RAND_BUF_LEN]){
    union {
         ulong  i;
 	float f[2];
@@ -280,27 +207,23 @@ static __device__ float xorshift128p_nextf (__private RandType t[RAND_BUF_LEN]){
    return s1.f[0] - 1.0f;
 }
 
-static __device__ void copystate(__local float *v1, __private float *v2, int len){
+__device__ void copystate(__local float *v1, __private float *v2, int len){
     for(int i=0;i<len;i++)
         v1[i]=v2[i];
 }
 
-static __device__ float rand_uniform01(__private RandType t[RAND_BUF_LEN]){
-    return xorshift128p_nextf(t);
-}
 
-static __device__ void xorshift128p_seed (__global uint *seed,RandType t[RAND_BUF_LEN]){
+
+__device__ void xorshift128p_seed (__global uint *seed,RandType t[RAND_BUF_LEN]){
     t[0] = (ulong)seed[0] << 32 | seed[1] ;
     t[1] = (ulong)seed[2] << 32 | seed[3];
 }
 
-static __device__ void gpu_rng_init(__private RandType t[RAND_BUF_LEN], __global uint *n_seed, int idx){
+__device__ void gpu_rng_init(__private RandType t[RAND_BUF_LEN], __global uint *n_seed, int idx){
     xorshift128p_seed((n_seed+idx*RAND_SEED_WORD_LEN),t);
 }
 
-float __device__ rand_next_scatlen(__private RandType t[RAND_BUF_LEN]){
-    return -MCX_MATHFUN(log)(rand_uniform01(t)+EPS);
-}
+
 
 #define rand_next_aangle(t)  rand_uniform01(t)
 #define rand_next_zangle(t)  rand_uniform01(t)
@@ -1053,7 +976,7 @@ __kernel void mmc_main_loop(const int nphoton, const int ophoton, __constant MCX
     __constant medium *med,  __constant float4 *gdetpos,__global float *n_det, __global uint *detectedphoton, 
     __global uint *n_seed, __global int *progress, __global float *energy, __global MCXReporter *reporter){
  
-    extern shared float sharedmem[];
+    extern __shared__ float sharedmem[];
  	RandType t[RAND_BUF_LEN];
 	int idx=blockIdx.x * blockDim.x + threadIdx.x;
 	gpu_rng_init(t,n_seed,idx);
