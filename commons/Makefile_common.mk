@@ -173,7 +173,7 @@ makedocdir:
 .SUFFIXES : $(OBJSUFFIX) .cpp
 
 ##  Compile .cpp files ##
-$(OBJDIR)/%$(OBJSUFFIX): %.cpp bbbb bbbb bbb
+$(OBJDIR)/%$(OBJSUFFIX): %.cpp
 	@$(ECHO) Building $@
 	$(CXX) $(CCFLAGS) $(USERCCFLAGS) -I$(INCLUDEDIR) -o $@  $<
 
