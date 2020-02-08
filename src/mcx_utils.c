@@ -7,7 +7,7 @@
 **  \section sref Reference:
 **  \li \c (\b Fang2010) Qianqian Fang, <a href="http://www.opticsinfobase.org/abstract.cfm?uri=boe-1-1-165">
 **          "Mesh-based Monte Carlo Method Using Fast Ray-Tracing 
-**          in Plücker Coordinates,"</a> Biomed. Opt. Express, 1(1) 165-175 (2010).
+**          in Plï¿½cker Coordinates,"</a> Biomed. Opt. Express, 1(1) 165-175 (2010).
 **  \li \c (\b Fang2012) Qianqian Fang and David R. Kaeli, 
 **           <a href="https://www.osapublishing.org/boe/abstract.cfm?uri=boe-3-12-3223">
 **          "Accelerating mesh-based Monte Carlo method on modern CPU architectures,"</a> 
@@ -37,9 +37,7 @@
 #include "mcx_utils.h"
 #include "mcx_const.h"
 
-#ifdef MCX_EMBED_CL
-    #include "mmc_core.clh"
-#endif
+
 #include "nifti1.h"
 
 /**
@@ -272,11 +270,9 @@ void mcx_initcfg(mcconfig *cfg){
      cfg->nbuffer=0;
      cfg->gpuid=0;
 
-#ifdef MCX_EMBED_CL
-     cfg->clsource=(char *)mmc_core_cl;
-#else
+
      cfg->clsource=NULL;
-#endif
+
 #ifdef MCX_CONTAINER
      cfg->parentid=mpMATLAB;
 #else
@@ -311,10 +307,7 @@ void mcx_clearcfg(mcconfig *cfg){
         free(cfg->exportdetected);
      if(cfg->flog && cfg->flog!=stdout && cfg->flog!=stderr)
         fclose(cfg->flog);
-#ifndef MCX_EMBED_CL
-     if(cfg->clsource && cfg->clsource!=(char *)mmc_core_cl)
-        free(cfg->clsource);
-#endif
+
      mcx_initcfg(cfg);
 }
 
@@ -1486,22 +1479,7 @@ void mcx_parsecmd(int argc, char* argv[], mcconfig *cfg){
 		MMC_FPRINTF(cfg->flog,"unable to save to log file, will print from stdout\n");
           }
      }
-     if(cfg->kernelfile[0]!='\0' && cfg->isgpuinfo!=2){
-     	  FILE *fp=fopen(cfg->kernelfile,"rb");
-	  int srclen;
-	  if(fp==NULL){
-	  	mcx_error(-10,"the specified OpenCL kernel file does not exist!",__FILE__,__LINE__);
-	  }
-	  fseek(fp,0,SEEK_END);
-	  srclen=ftell(fp);
-	  if(cfg->clsource!=(char *)mmc_core_cl)
-	      free(cfg->clsource);
-	  cfg->clsource=(char *)malloc(srclen+1);
-	  fseek(fp,0,SEEK_SET);
-	  MMC_ASSERT((fread(cfg->clsource,srclen,1,fp)==1));
-	  cfg->clsource[srclen]='\0';
-	  fclose(fp);
-     }
+     
      if((cfg->outputtype==otJacobian || cfg->outputtype==otWL || cfg->outputtype==otWP) && cfg->seed!=SEED_FROM_FILE)
          MMC_ERROR(-1,"Jacobian output is only valid in the reply mode. Please give an mch file after '-E'.");
      if(cfg->isgpuinfo!=2){ /*print gpu info only*/
