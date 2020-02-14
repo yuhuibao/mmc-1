@@ -31,7 +31,7 @@
 #define _MMC_UTILITIES_H
 
 #include <stdio.h>
-#include "vector_types.h"
+#include <vector_types.h>
 #include "cjson/cJSON.h"
 
 #ifdef _OPENMP                      ///< use multi-threading for running simulation on multiple GPUs

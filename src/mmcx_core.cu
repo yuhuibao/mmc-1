@@ -122,7 +122,7 @@
   #define MCX_SINCOS(theta,osin,ocos)   {(osin)=native_sin(theta);(ocos)=native_cos(theta);} 
 #else
   #define MCX_MATHFUN(fun)              fun
-  #define MCX_SINCOS(theta,osin,ocos)   (ocos)=sincos((theta),&(osin))
+  //#define MCX_SINCOS(theta,osin,ocos)   (ocos)=sincos((theta),&(osin))
 #endif
 
 #ifdef MCX_GPU_DEBUG
@@ -547,7 +547,7 @@ __device__ float reflectray(__constant MCXParam *gcfg,float3 *c0, int *oldeid,in
     nextslen=rand_next_scatlen(ran);
 
     tmp0=TWO_PI*rand_next_aangle(ran); //next arimuth angle
-    MCX_SINCOS(tmp0,sphi,cphi);
+    sincosf(tmp0,&sphi,&cphi);
 
     if(g>EPS){  //if g is too small, the distribution of theta is bad
 	tmp0=(1.f-g*g)/(1.f-g+2.f*g*rand_next_zangle(ran));
@@ -561,7 +561,7 @@ __device__ float reflectray(__constant MCXParam *gcfg,float3 *c0, int *oldeid,in
 	ctheta=tmp0;
     }else{
 	theta=acos(2.f*rand_next_zangle(ran)-1.f);
-    	MCX_SINCOS(theta,stheta,ctheta);
+    	sincosf(theta,&stheta,&ctheta);
     }
 
     if( dir->z>-1.f+EPS && dir->z<1.f-EPS ) {
@@ -992,6 +992,7 @@ __kernel void mmc_main_loop(const int nphoton, const int ophoton, __constant MCX
 	energy[1+(idx<<1)]=energytot;
 
         if(gcfg->debuglevel & MCX_DEBUG_PROGRESS)
-            atomic_inc(progress);
+	    CUDA_ASSERT(cudaEventCreate(&updateprogress));
 	atomicadd(&(reporter->raytet),raytet);
+
 }
