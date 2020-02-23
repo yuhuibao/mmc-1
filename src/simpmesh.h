@@ -7,7 +7,7 @@
 **  \section sref Reference:
 **  \li \c (\b Fang2010) Qianqian Fang, <a href="http://www.opticsinfobase.org/abstract.cfm?uri=boe-1-1-165">
 **          "Mesh-based Monte Carlo Method Using Fast Ray-Tracing 
-**          in Plücker Coordinates,"</a> Biomed. Opt. Express, 1(1) 165-175 (2010).
+**          in Plï¿½cker Coordinates,"</a> Biomed. Opt. Express, 1(1) 165-175 (2010).
 **  \li \c (\b Fang2012) Qianqian Fang and David R. Kaeli, 
 **           <a href="https://www.osapublishing.org/boe/abstract.cfm?uri=boe-3-12-3223">
 **          "Accelerating mesh-based Monte Carlo method on modern CPU architectures,"</a> 
@@ -33,28 +33,12 @@
 #include <stdio.h>
 #include <math.h>
 #include "mcx_utils.h"
+#include "xorshift128p_rand.h"
 
 #ifdef MMC_USE_SSE
 #include <smmintrin.h>
 #endif
 
-#ifndef USE_OPENCL
-
-#ifdef MMC_LOGISTIC
-  #include "logistic_rand.c"
-#elif defined MMC_SFMT    
-  #include "sfmt_rand.c"
-#elif defined MMC_XORSHIFT
-  #include "xorshift128p_rand.c"
-#else
-  #include "posix_randr.c"
-#endif
-
-#else
-
-  #include "xorshift128p_rand.c"
-
-#endif
 
 #define MMC_UNDEFINED (3.40282347e+38F)
 #define ID_UNDEFINED  0xFFFFFFFF
