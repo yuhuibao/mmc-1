@@ -38,6 +38,8 @@
     #include <omp.h>
 #endif
 
+#define EPS                FLT_EPSILON                   /**< round-off limit */
+
 #define MAX_PROP            256                          /**< max optical property count */
 #define MAX_DETECTORS       256                          /**< max number of detectors */
 #define MAX_PATH_LENGTH     1024                         /**< max characters in a full file name string */

@@ -18,6 +18,7 @@ MMCDIR  ?= $(ROOTDIR)
 
 MMCSRC :=$(MMCDIR)/src
 
+CUDACC=nvcc
 CXX        := g++
 AR         := $(CC)
 BIN        := bin
@@ -69,6 +70,7 @@ else ifeq ($(findstring Darwin,$(PLATFORM)), Darwin)
   OPENMPLIB=-static-libgcc /usr/local/lib/libgomp.a
 endif
 
+CUCCOPT=
 INCLUDEDIR+=$(INCLUDEDIRS)
 EXTRALIB+=$(LIBOPENCL)
 
@@ -171,6 +173,9 @@ makedocdir:
 	@if test ! -d $(DOCDIR); then $(MKDIR) $(DOCDIR); fi
 
 .SUFFIXES : $(OBJSUFFIX) .cpp
+
+$(OBJDIR)/%$(OBJSUFFIX): %.cu
+	$(CUDACC) -c $(CUCCOPT) -o $@  $<
 
 ##  Compile .cpp files ##
 $(OBJDIR)/%$(OBJSUFFIX): %.cpp

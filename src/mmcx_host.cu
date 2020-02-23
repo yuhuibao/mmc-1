@@ -527,7 +527,7 @@ is more than what your have specified (%d), please use the -H option to specify 
          cfg->his.unitinmm=cfg->unitinmm;
          cfg->his.savedphoton=cfg->detectedcount;
          cfg->his.detected=cfg->detectedcount;
-         mesh_savedetphoton(cfg->exportdetected,NULL,cfg->detectedcount,(sizeof(RandType)*RAND_BUF_LEN),cfg);
+         mesh_savedetphoton(cfg->exportdetected,NULL,cfg->detectedcount,(sizeof(GRandType)*RAND_BUF_LEN),cfg);
      }
      if(cfg->issaveref){
 	MMC_FPRINTF(cfg->flog,"saving surface diffuse reflectance ...");

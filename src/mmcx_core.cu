@@ -13,6 +13,9 @@
 **          GPL v3, see LICENSE.txt for details
 *******************************************************************************/
 #include "mmcx_core.h"
+
+#include "xorshift128p_rand.cu" ///< use xorshift128+ RNG (XORSHIFT128P)
+
 #ifdef __CUDA_ARCH__
   #define __constant const
   #define __private 
@@ -20,6 +23,10 @@
   #define __global
   #define __kernel __global__
   #define get_global_id 
+
+   __device__ __host__ float4 convert_float4_rte(float4 v){
+	return make_float4(roundf(v.x),roundf(v.y),roundf(v.z),roundf(v.w));
+ }
 
   __device__ __host__ float3 operator *(float3 a, float3 b){
       return make_float3(a.x*b.x, a.y*b.y, a.z*b.z);
@@ -29,6 +36,15 @@
   }
   __device__ __host__ float3 operator *(float3 v, float f){
       return make_float3(v.x*f, v.y*f, v.z*f);
+  }
+  __device__ __host__ float4 operator *(float4 v, float f){
+      return make_float4(v.x*f, v.y*f, v.z*f, v.w*f);
+  }
+  __device__ __host__ float4 operator -(float4 v){
+      return make_float4(-v.x,-v.y,-v.z,-v.w);
+  }
+  __device__ __host__ int4 operator -(int4 v){
+      return make_int4(-v.x,-v.y,-v.z,-v.w);
   }
   __device__ __host__ void operator *=(float3 & b, float f){
       b.x *= f;
@@ -66,11 +82,20 @@
   __device__ float4 operator +(float4 a, float4 b){
       return make_float4(a.x+b.x, a.y+b.y, a.z+b.w, a.w+b.w);
   }
+  __device__ __host__ float4 isgreater(float4 a, float4 b){
+      return make_float4(a.x>b.x, a.y>b.y, a.z>b.z, a.w>b.w);
+  }
   __device__ void operator +=(float4 & b, float4 a){
       b.x += a.x;
       b.y += a.y;
       b.z += a.z;
       b.w += a.w;
+  }
+  __device__ float4 operator *(float4 a, float4 b){
+      return make_float4(a.x*b.x, a.y*b.y, a.z*b.w, a.w*b.w);
+  }
+  __device__ float4 operator /(float4 a, float4 b){
+      return make_float4(a.x/b.x, a.y/b.y, a.z/b.w, a.w/b.w);
   }
   __device__ float4 operator -(float4 a, float4 b){
       return make_float4(a.x-b.x, a.y-b.y, a.z-b.z, a.w-b.w);
@@ -179,57 +204,6 @@ __constant int ifacemap[]={1,2,0,3};
 
 
 
-
-
-
-
-#define RAND_BUF_LEN       2        //register arrays
-#define RAND_SEED_WORD_LEN      4        //48 bit packed with 64bit length
-#define LOG_MT_MAX         22.1807097779182f
-#define IEEE754_DOUBLE_BIAS     0x3FF0000000000000ul /* Added to exponent.  */
-
-
-
-__device__ float xorshift128p_nextf (__private RandType t[RAND_BUF_LEN]){
-   union {
-        ulong  i;
-	float f[2];
-	uint  u[2];
-   } s1;
-   const ulong s0 = t[1];
-   s1.i = t[0];
-   t[0] = s0;
-   s1.i ^= s1.i << 23; // a
-   t[1] = s1.i ^ s0 ^ (s1.i >> 18) ^ (s0 >> 5); // b, c
-   s1.i = t[1] + s0;
-   s1.u[0] = 0x3F800000U | (s1.u[0] >> 9);
-
-   return s1.f[0] - 1.0f;
-}
-
-__device__ void copystate(__local float *v1, __private float *v2, int len){
-    for(int i=0;i<len;i++)
-        v1[i]=v2[i];
-}
-
-
-
-__device__ void xorshift128p_seed (__global uint *seed,RandType t[RAND_BUF_LEN]){
-    t[0] = (ulong)seed[0] << 32 | seed[1] ;
-    t[1] = (ulong)seed[2] << 32 | seed[3];
-}
-
-__device__ void gpu_rng_init(__private RandType t[RAND_BUF_LEN], __global uint *n_seed, int idx){
-    xorshift128p_seed((n_seed+idx*RAND_SEED_WORD_LEN),t);
-}
-
-
-
-#define rand_next_aangle(t)  rand_uniform01(t)
-#define rand_next_zangle(t)  rand_uniform01(t)
-#define rand_next_reflect(t) rand_uniform01(t)
-#define rand_do_roulette(t)  rand_uniform01(t) 
-
 #ifdef USE_ATOMIC
 
 #ifndef __CUDA_ARCH__
@@ -273,7 +247,7 @@ __device__ void clearpath(__local float *p, int len){
 }
 
 #ifdef MCX_SAVE_DETECTORS
-__device__ uint finddetector(float3 *p0,__constant float4 *gdetpos,__constant MCXParam *gcfg){
+__device__ uint finddetector(float3 *p0,float4 *gdetpos,__constant MCXParam *gcfg){
       uint i;
       for(i=0;i<gcfg->detnum;i++){
       	if((gdetpos[i].x-p0[0].x)*(gdetpos[i].x-p0[0].x)+
@@ -286,7 +260,7 @@ __device__ uint finddetector(float3 *p0,__constant float4 *gdetpos,__constant MC
 }
 
 __device__ void savedetphoton(__global float *n_det,__global uint *detectedphoton,
-                   __local float *ppath,float3 *p0,float3 *v,__constant float4 *gdetpos,
+                   __local float *ppath,float3 *p0,float3 *v,float4 *gdetpos,
 		   int extdetid, __constant MCXParam *gcfg){
       uint detid=(extdetid<0)? finddetector(p0,gdetpos,gcfg) : extdetid;
       if(detid){
@@ -329,7 +303,7 @@ __device__ void savedetphoton(__global float *n_det,__global uint *detectedphoto
  */
 
  __device__ float branchless_badouel_raytet(ray *r, __constant MCXParam *gcfg,__constant int *elem,__global float *weight,
-    int type, __constant int *facenb, __constant float4 *normal, __constant medium *med){
+    int type, __constant int *facenb, float4 *normal, __constant medium *med){
 
 	float Lmin;
 	float ww,totalloss=0.f;
@@ -351,10 +325,10 @@ __device__ void savedetphoton(__global float *n_det,__global uint *detectedphoto
 
 	S = FL4(r->vec.x)*normal[eid]+FL4(r->vec.y)*normal[eid+1]+FL4(r->vec.z)*normal[eid+2];
 	T = normal[eid+3] - (FL4(r->p0.x)*normal[eid]+FL4(r->p0.y)*normal[eid+1]+FL4(r->p0.z)*normal[eid+2]);
-        T = -convert_float4_rte(isgreater(T,FL4(0.f))*2)*FL4(0.5f)*T;
+        T = -(isgreater(T,FL4(0.f))*2.f)*FL4(0.5f)*T;
 	T = T/S;
 
-        S = -convert_float4_rte(isgreater(S,FL4(0.f))*2)*FL4(0.5f);
+        S = -convert_float4_rte(isgreater(S,FL4(0.f))*2.f)*FL4(0.5f);
         T =  S * T + (FL4(1.f)-S) * FL4(1e10f);
 
 	eid=r->eid-1;
@@ -470,7 +444,7 @@ __device__ void savedetphoton(__global float *n_det,__global uint *detectedphoto
 
 #ifdef MCX_DO_REFLECTION
 
-__device__ float reflectray(__constant MCXParam *gcfg,float3 *c0, int *oldeid,int *eid,int faceid,__private RandType *ran, __constant int *type, __constant float4 *normal, __constant medium *med){
+__device__ float reflectray(__constant MCXParam *gcfg,float3 *c0, int *oldeid,int *eid,int faceid,__private GRandType *ran, __constant int *type, float4 *normal, __constant medium *med){
 	/*to handle refractive index mismatch*/
         float3 pnorm={0.f,0.f,0.f};
 	float Icos,Re,Im,Rtotal,tmp0,tmp1,tmp2,n1,n2;
@@ -537,7 +511,7 @@ __device__ float reflectray(__constant MCXParam *gcfg,float3 *c0, int *oldeid,in
  * @param[out] pmom: buffer to store momentum transfer data if needed
  */
 
- __device__ float mc_next_scatter(float g, float3 *dir,__private RandType *ran, __constant MCXParam *gcfg, float *pmom){
+ __device__ float mc_next_scatter(float g, float3 *dir,__private GRandType *ran, __constant MCXParam *gcfg, float *pmom){
 
     float nextslen;
     float sphi,cphi,tmp0,theta,stheta,ctheta,tmp1;
@@ -619,7 +593,7 @@ __device__ float reflectray(__constant MCXParam *gcfg,float3 *c0, int *oldeid,in
  * \param[in,out] ran: the random number generator states
  */
 
- __device__ void launchphoton(__constant MCXParam *gcfg, ray *r, __global float3 *node,__constant int *elem,__constant int *srcelem, __private RandType *ran){
+ __device__ void launchphoton(__constant MCXParam *gcfg, ray *r, __global float3 *node,__constant int *elem,__constant int *srcelem, __private GRandType *ran){
         int canfocus=1;
         float3 origin=r->p0;
 
@@ -821,8 +795,8 @@ __device__ float reflectray(__constant MCXParam *gcfg,float3 *c0, int *oldeid,in
  */
 
  __device__ void onephoton(unsigned int id,__local float *ppath, __constant MCXParam *gcfg,__global float3 *node,__constant int *elem, __global float *weight,__global float *dref,
-    __constant int *type, __constant int *facenb,  __constant int *srcelem, __constant float4 *normal, __constant medium *med,
-    __global float *n_det, __global uint *detectedphoton, float *energytot, float *energyesc, __constant float4 *gdetpos, __private RandType *ran, int *raytet){
+    __constant int *type, __constant int *facenb,  __constant int *srcelem, float4 *normal, __constant medium *med,
+    __global float *n_det, __global uint *detectedphoton, float *energytot, float *energyesc, float4 *gdetpos, __private GRandType *ran, int *raytet){
 
 	int oldeid,fixcount=0;
 	ray r={gcfg->srcpos,gcfg->srcdir,{MMC_UNDEFINED,0.f,0.f},gcfg->e0,0,0,1.f,0.f,0.f,0.f,ID_UNDEFINED,0.f};
@@ -972,12 +946,12 @@ __device__ float reflectray(__constant MCXParam *gcfg,float3 *c0, int *oldeid,in
 }
 
 __kernel void mmc_main_loop(const int nphoton, const int ophoton, __constant MCXParam *gcfg,
-    __global float3 *node,__constant int *elem,  __global float *weight, __global float *dref, __constant int *type, __constant int *facenb,  __constant int *srcelem, __constant float4 *normal, 
-    __constant medium *med,  __constant float4 *gdetpos,__global float *n_det, __global uint *detectedphoton, 
+    __global float3 *node,__constant int *elem,  __global float *weight, __global float *dref, __constant int *type, __constant int *facenb,  __constant int *srcelem, float4 *normal, 
+    __constant medium *med,  float4 *gdetpos,__global float *n_det, __global uint *detectedphoton, 
     __global uint *n_seed, __global int *progress, __global float *energy, __global MCXReporter *reporter){
  
     extern __shared__ float sharedmem[];
- 	RandType t[RAND_BUF_LEN];
+ 	GRandType t[RAND_BUF_LEN];
 	int idx=blockIdx.x * blockDim.x + threadIdx.x;
 	gpu_rng_init(t,n_seed,idx);
         float  energyesc=0.f, energytot=0.f;
@@ -991,8 +965,8 @@ __kernel void mmc_main_loop(const int nphoton, const int ophoton, __constant MCX
 	energy[idx<<1]=energyesc;
 	energy[1+(idx<<1)]=energytot;
 
-        if(gcfg->debuglevel & MCX_DEBUG_PROGRESS)
-	    CUDA_ASSERT(cudaEventCreate(&updateprogress));
+//        if(gcfg->debuglevel & MCX_DEBUG_PROGRESS)
+//	    CUDA_ASSERT(cudaEventCreate(&updateprogress));
 	atomicadd(&(reporter->raytet),raytet);
 
 }
