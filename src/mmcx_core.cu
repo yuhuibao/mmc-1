@@ -194,13 +194,13 @@
 
 
 
-__constant int faceorder[]={1,3,2,0,-1};
-__constant int ifaceorder[]={3,0,2,1};
+
+int ifaceorder[]={3,0,2,1};
 //__constant int fc[4][3]={{0,4,2},{3,5,4},{2,5,1},{1,3,0}};
 //__constant int nc[4][3]={{3,0,1},{3,1,2},{2,0,3},{1,0,2}};
-__constant int out[4][3]={{0,3,1},{3,2,1},{0,2,3},{0,1,2}};
-__constant int facemap[]={2,0,1,3};
-__constant int ifacemap[]={1,2,0,3};
+int out[4][3]={{0,3,1},{3,2,1},{0,2,3},{0,1,2}};
+int facemap[]={2,0,1,3};
+int ifacemap[]={1,2,0,3};
 
 
 
@@ -240,7 +240,7 @@ inline double atomicadd(__global double *val, const double delta){
 
 #endif
 
-__device__ void clearpath(__local float *p, int len){
+__device__ void clearpath( float *p, int len){
       uint i;
       for(i=0;i<len;i++)
       	   p[i]=0.f;
@@ -260,7 +260,7 @@ __device__ uint finddetector(float3 *p0,float4 *gdetpos,__constant MCXParam *gcf
 }
 
 __device__ void savedetphoton(__global float *n_det,__global uint *detectedphoton,
-                   __local float *ppath,float3 *p0,float3 *v,float4 *gdetpos,
+                    float *ppath,float3 *p0,float3 *v,float4 *gdetpos,
 		   int extdetid, __constant MCXParam *gcfg){
       uint detid=(extdetid<0)? finddetector(p0,gdetpos,gcfg) : extdetid;
       if(detid){
@@ -304,7 +304,7 @@ __device__ void savedetphoton(__global float *n_det,__global uint *detectedphoto
 
  __device__ float branchless_badouel_raytet(ray *r, __constant MCXParam *gcfg,__constant int *elem,__global float *weight,
     int type, __constant int *facenb, float4 *normal, __constant medium *med){
-
+	int faceorder[]={1,3,2,0,-1};
 	float Lmin;
 	float ww,totalloss=0.f;
 	int tshift,faceidx=-1,eid;
@@ -794,7 +794,7 @@ __device__ float reflectray(__constant MCXParam *gcfg,float3 *c0, int *oldeid,in
  * \param[out] visit: statistics counters of this thread
  */
 
- __device__ void onephoton(unsigned int id,__local float *ppath, __constant MCXParam *gcfg,__global float3 *node,__constant int *elem, __global float *weight,__global float *dref,
+ __device__ void onephoton(unsigned int id, float *ppath, __constant MCXParam *gcfg,__global float3 *node,__constant int *elem, __global float *weight,__global float *dref,
     __constant int *type, __constant int *facenb,  __constant int *srcelem, float4 *normal, __constant medium *med,
     __global float *n_det, __global uint *detectedphoton, float *energytot, float *energyesc, float4 *gdetpos, __private GRandType *ran, int *raytet){
 
