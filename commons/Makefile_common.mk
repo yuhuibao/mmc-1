@@ -70,7 +70,7 @@ else ifeq ($(findstring Darwin,$(PLATFORM)), Darwin)
   OPENMPLIB=-static-libgcc /usr/local/lib/libgomp.a
 endif
 
-CUCCOPT=
+CUCCOPT=-D__CUDA_ARCH__
 INCLUDEDIR+=$(INCLUDEDIRS)
 EXTRALIB+=$(LIBOPENCL)
 

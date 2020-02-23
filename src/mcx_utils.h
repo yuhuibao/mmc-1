@@ -298,7 +298,7 @@ void mcx_cleargpuinfo(GPUInfo **gpuinfo);
   #define MMC_FPRINTF(fp,...) mexPrintf(__VA_ARGS__)
  #endif
 #else
-  #define MMC_FPRINTF(fp,...) fprintf(fp,__VA_ARGS__)
+  #define MCX_FPRINTF(fp,...) fprintf(fp,__VA_ARGS__)
 #endif
 
 #if defined(MATLAB_MEX_FILE) || defined(OCTAVE_API_VERSION_NUMBER) || defined (HAVE_OCTAVE)
