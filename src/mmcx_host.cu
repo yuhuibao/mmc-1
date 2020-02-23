@@ -29,6 +29,7 @@
 #include "mmcx_core.h"
 #include "mcx_const.h"
 #include "tictoc.h"
+#include "mcx_utils.h"
 
 #ifdef _OPENMP
   #include <omp.h>
@@ -40,7 +41,20 @@ necessary data structures. This include the command line options (cfg),
 tetrahedral mesh (mesh) and the ray-tracer precomputed data (tracer).
 *******************************************************************************/
 
-
+int mcx_corecount(int v1, int v2){
+     int v=v1*10+v2;
+     if(v<20)      return 8;
+     else if(v<21) return 32;
+     else if(v<30) return 48;
+     else if(v<50) return 192;
+     else          return 128;
+}
+int mcx_smxblock(int v1, int v2){
+     int v=v1*10+v2;
+     if(v<30)      return 8;
+     else if(v<50) return 16;
+     else          return 32;
+}
 /**
    assert cuda memory allocation result
 */
@@ -168,17 +182,16 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      uint hostdetreclen=detreclen+1;
      GPUInfo *gpu=NULL;
 
-     MCXParam param={{{cfg->srcpos.x,cfg->srcpos.y,cfg->srcpos.z}}, {{cfg->srcdir.x,cfg->srcdir.y,cfg->srcdir.z}},
+     MCXParam param={cfg->srcpos, cfg->srcdir,
 		     cfg->tstart, cfg->tend, (uint)cfg->isreflect,(uint)cfg->issavedet,(uint)cfg->issaveexit,
 		     (uint)cfg->ismomentum, (uint)cfg->isatomic, (uint)cfg->isspecular, 1.f/cfg->tstep, cfg->minenergy, 
 		     cfg->maxdetphoton, mesh->prop, cfg->detnum, (uint)cfg->voidtime, (uint)cfg->srctype, 
-		     {{cfg->srcparam1.x,cfg->srcparam1.y,cfg->srcparam1.z,cfg->srcparam1.w}},
-		     {{cfg->srcparam2.x,cfg->srcparam2.y,cfg->srcparam2.z,cfg->srcparam2.w}},
+		     cfg->srcparam1,cfg->srcparam2,
 		     cfg->issaveref,cfg->maxgate,(uint)cfg->debuglevel, detreclen, cfg->outputtype, mesh->elemlen, 
 		     cfg->mcmethod, cfg->method, 1.f/cfg->unitinmm, cfg->srcpos.w, 
-		     mesh->nn, mesh->ne, mesh->nf, {{mesh->nmin.x,mesh->nmin.y,mesh->nmin.z}}, cfg->nout,
-		     cfg->roulettesize, cfg->srcnum, {{cfg->crop0.x,cfg->crop0.y,cfg->crop0.z}}, 
-		     mesh->srcelemlen, {{cfg->bary0.x,cfg->bary0.y,cfg->bary0.z,cfg->bary0.w}}, 
+		     mesh->nn, mesh->ne, mesh->nf, {mesh->nmin.x,mesh->nmin.y,mesh->nmin.z}, cfg->nout,
+		     cfg->roulettesize, cfg->srcnum, {cfg->crop0.x,cfg->crop0.y,cfg->crop0.z}, 
+		     mesh->srcelemlen, {cfg->bary0.x,cfg->bary0.y,cfg->bary0.z,cfg->bary0.w}, 
 		     cfg->e0, cfg->isextdet, meshlen, cfg->nbuffer, ((1 << cfg->nbuffer)-1)};
 
      MCXReporter reporter={0.f};
@@ -256,70 +269,70 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
         srand(time(0));
 
 
-     OCL_ASSERT(cudaMalloc((void**)&gnode,sizeof(float3)*(mesh->nn)));
-     OCL_ASSERT(cudaMemcpy(gnode,mesh->node,sizeof(float3)*(mesh->nn),cudaMemcpyHostToDevice));
-     OCL_ASSERT(cudaMalloc((void**)&gelem,sizeof(int4)*(mesh->ne)));
-     OCL_ASSERT(cudaMemcpy(gelem,mesh->elem,sizeof(int4)*(mesh->ne),cudaMemcpyHostToDevice));
-     OCL_ASSERT(cudaMalloc((void**)&gtype,sizeof(int)*(mesh->ne)));
-     OCL_ASSERT(cudaMemcpy(gtype,mesh->type,sizeof(int)*(mesh->ne),cudaMemcpyHostToDevice));
-     OCL_ASSERT(cudaMalloc((void**)&gfacenb,sizeof(int4)*(mesh->ne)));
-     OCL_ASSERT(cudaMemcpy(gfacenb,mesh->facenb,sizeof(int4)*(mesh->ne),cudaMemcpyHostToDevice));
+     CUDA_ ASSERT(cudaMalloc((void**)&gnode,sizeof(float3)*(mesh->nn)));
+     CUDA_ ASSERT(cudaMemcpy(gnode,mesh->node,sizeof(float3)*(mesh->nn),cudaMemcpyHostToDevice));
+     CUDA_ ASSERT(cudaMalloc((void**)&gelem,sizeof(int4)*(mesh->ne)));
+     CUDA_ ASSERT(cudaMemcpy(gelem,mesh->elem,sizeof(int4)*(mesh->ne),cudaMemcpyHostToDevice));
+     CUDA_ ASSERT(cudaMalloc((void**)&gtype,sizeof(int)*(mesh->ne)));
+     CUDA_ ASSERT(cudaMemcpy(gtype,mesh->type,sizeof(int)*(mesh->ne),cudaMemcpyHostToDevice));
+     CUDA_ ASSERT(cudaMalloc((void**)&gfacenb,sizeof(int4)*(mesh->ne)));
+     CUDA_ ASSERT(cudaMemcpy(gfacenb,mesh->facenb,sizeof(int4)*(mesh->ne),cudaMemcpyHostToDevice));
      if(mesh->srcelemlen>0){
-         OCL_ASSERT(cudaMalloc((void**)&gsrcelem,sizeof(int)*(mesh->srcelemlen)));
-         OCL_ASSERT(cudaMemcpy(gsrcelem,mesh->srcelem,sizeof(int)*(mesh->srcelemlen),cudaMemcpyHostToDevice));
+         CUDA_ ASSERT(cudaMalloc((void**)&gsrcelem,sizeof(int)*(mesh->srcelemlen)));
+         CUDA_ ASSERT(cudaMemcpy(gsrcelem,mesh->srcelem,sizeof(int)*(mesh->srcelemlen),cudaMemcpyHostToDevice));
      }
      else
          gsrcelem=NULL;
      
-     OCL_ASSERT(cudaMalloc((void**)&gnormal,sizeof(float4)*(mesh->ne)*4));
-     OCL_ASSERT(cudaMemcpy(gnormal,trace->n,sizeof(float4)*(mesh->ne)*4,cudaMemcpyHostToDevice));
+     CUDA_ ASSERT(cudaMalloc((void**)&gnormal,sizeof(float4)*(mesh->ne)*4));
+     CUDA_ ASSERT(cudaMemcpy(gnormal,trace->n,sizeof(float4)*(mesh->ne)*4,cudaMemcpyHostToDevice));
      if(cfg->detpos && cfg->detnum){
-           OCL_ASSERT(cudaMalloc((void**)&gdetpos,sizeof(float4)*(cfg->detnum)));
-           OCL_ASSERT(cudaMemcpy(gdetpos,cfg->detpos,sizeof(float4)*(cfg->detnum),cudaMemcpyHostToDevice));
+           CUDA_ ASSERT(cudaMalloc((void**)&gdetpos,sizeof(float4)*(cfg->detnum)));
+           CUDA_ ASSERT(cudaMemcpy(gdetpos,cfg->detpos,sizeof(float4)*(cfg->detnum),cudaMemcpyHostToDevice));
      }     
      else
          gdetpos=NULL;
 
-     OCL_ASSERT(cudaMalloc((void**)&gproperty,(mesh->prop+1+cfg->isextdet)*sizeof(medium)));
-     OCL_ASSERT(cudaMemcpy(gproperty,mesh->med,(mesh->prop+1+cfg->isextdet)*sizeof(medium),cudaMemcpyHostToDevice));
+     CUDA_ ASSERT(cudaMalloc((void**)&gproperty,(mesh->prop+1+cfg->isextdet)*sizeof(medium)));
+     CUDA_ ASSERT(cudaMemcpy(gproperty,mesh->med,(mesh->prop+1+cfg->isextdet)*sizeof(medium),cudaMemcpyHostToDevice));
           
-     OCL_ASSERT(cudaMalloc((void **)&gparam, sizeof(MCXParam)));
-     OCL_ASSERT(cudaMemcpy(gparam,param,sizeof(MCXParam),cudaMemcpyHostToDevice));
+     CUDA_ ASSERT(cudaMalloc((void **)&gparam, sizeof(MCXParam)));
+     CUDA_ ASSERT(cudaMemcpy(gparam,param,sizeof(MCXParam),cudaMemcpyHostToDevice));
      CUDA_ASSERT(cudaHostAlloc((void **)&progress, sizeof(int), cudaHostAllocMapped));
      CUDA_ASSERT(cudaHostGetDevicePointer((int **)&gprogress, (int *)progress, 0));
      *progress=0;
 
-     Pseed=malloc(sizeof(cl_uint)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN);
-     energy=calloc(sizeof(cl_float),gpu[gpuid].autothread<<1);
+     Pseed=malloc(sizeof(int)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN);
+     energy=calloc(sizeof(float),gpu[gpuid].autothread<<1);
        
-       OCL_ASSERT(cudaMalloc((void**)&gseed[gpuid],sizeof(uint)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN));  
-       OCL_ASSERT(cudaMemcpy(gseed[gpuid],Pseed,sizeof(uint)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN));
+       CUDA_ ASSERT(cudaMalloc((void**)&gseed[gpuid],sizeof(uint)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN));  
+       CUDA_ ASSERT(cudaMemcpy(gseed[gpuid],Pseed,sizeof(uint)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN));
 
-       OCL_ASSERT(cudaMalloc((void**)&gweight[gpuid],sizeof(float)*fieldlen));
-       OCL_ASSERT(cudaMemcpy(gweight[gpuid],field,sizeof(float)*fieldlen));
+       CUDA_ ASSERT(cudaMalloc((void**)&gweight[gpuid],sizeof(float)*fieldlen));
+       CUDA_ ASSERT(cudaMemcpy(gweight[gpuid],field,sizeof(float)*fieldlen));
 
 
-       OCL_ASSERT(cudaMalloc((void**)&gdref[gpuid],sizeof(float)*nflen));
-       OCL_ASSERT(cudaMemcpy(gdref[gpuid],dref,sizeof(float)*nflen));
+       CUDA_ ASSERT(cudaMalloc((void**)&gdref[gpuid],sizeof(float)*nflen));
+       CUDA_ ASSERT(cudaMemcpy(gdref[gpuid],dref,sizeof(float)*nflen));
 
-       OCL_ASSERT(cudaMalloc((void**)&gdetphoton[gpuid],sizeof(float)*cfg->maxdetphoton*hostdetreclen));
-       OCL_ASSERT(cudaMemcpy(gdetphoton[gpuid],Pdet,sizeof(float)*cfg->maxdetphoton*hostdetreclen));
+       CUDA_ ASSERT(cudaMalloc((void**)&gdetphoton[gpuid],sizeof(float)*cfg->maxdetphoton*hostdetreclen));
+       CUDA_ ASSERT(cudaMemcpy(gdetphoton[gpuid],Pdet,sizeof(float)*cfg->maxdetphoton*hostdetreclen));
 
-       OCL_ASSERT(cudaMalloc((void**)&genergy[gpuid],sizeof(float)*(gpu[gpuid].autothread<<1)));
-       OCL_ASSERT(cudaMemcpy(genergy[gpuid],energy,sizeof(float)*(gpu[gpuid].autothread<<1)));
+       CUDA_ ASSERT(cudaMalloc((void**)&genergy[gpuid],sizeof(float)*(gpu[gpuid].autothread<<1)));
+       CUDA_ ASSERT(cudaMemcpy(genergy[gpuid],energy,sizeof(float)*(gpu[gpuid].autothread<<1)));
 
-       OCL_ASSERT(cudaMalloc((void**)&gdetected[gpuid],sizeof(uint)));
-       OCL_ASSERT(cudaMemcpy(gdetected[gpuid],&detected,sizeof(uint)));
+       CUDA_ ASSERT(cudaMalloc((void**)&gdetected[gpuid],sizeof(uint)));
+       CUDA_ ASSERT(cudaMemcpy(gdetected[gpuid],&detected,sizeof(uint)));
 
-       OCL_ASSERT(cudaMalloc((void**)&greporter[gpuid],sizeof(MCXReporter)));
-       OCL_ASSERT(cudaMemcpy(greporter[gpuid],&reporter,sizeof(MCXReporter)));
+       CUDA_ ASSERT(cudaMalloc((void**)&greporter[gpuid],sizeof(MCXReporter)));
+       CUDA_ ASSERT(cudaMemcpy(greporter[gpuid],&reporter,sizeof(MCXReporter)));
 
        if(cfg->srctype==MCX_SRC_PATTERN){
-           OCL_ASSERT(cudaMalloc((void**)&gsrcpattern[gpuid],sizeof(float)*(int)(cfg->srcparam1.w*cfg->srcparam2.w)));
-           OCL_ASSERT(cudaMemcpy(gsrcpattern[gpuid]cfg->srcpattern,sizeof(float)*(int)(cfg->srcparam1.w*cfg->srcparam2.w)));
+           CUDA_ ASSERT(cudaMalloc((void**)&gsrcpattern[gpuid],sizeof(float)*(int)(cfg->srcparam1.w*cfg->srcparam2.w)));
+           CUDA_ ASSERT(cudaMemcpy(gsrcpattern[gpuid]cfg->srcpattern,sizeof(float)*(int)(cfg->srcparam1.w*cfg->srcparam2.w)));
        }else if(cfg->srctype==MCX_SRC_PATTERN3D){
-           OCL_ASSERT(cudaMalloc((void**)&gsrcpattern[gpuid],sizeof(float)*(int)(cfg->srcparam1.x*cfg->srcparam1.y*cfg->srcparam1.z)));
-           OCL_ASSERT(cudaMemcpy(gsrcpattern[gpuid]cfg->srcpattern,sizeof(float)*(int)(cfg->srcparam1.x*cfg->srcparam1.y*cfg->srcparam1.z))));
+           CUDA_ ASSERT(cudaMalloc((void**)&gsrcpattern[gpuid],sizeof(float)*(int)(cfg->srcparam1.x*cfg->srcparam1.y*cfg->srcparam1.z)));
+           CUDA_ ASSERT(cudaMemcpy(gsrcpattern[gpuid]cfg->srcpattern,sizeof(float)*(int)(cfg->srcparam1.x*cfg->srcparam1.y*cfg->srcparam1.z))));
        }else
            gsrcpattern[gpuid]=NULL;
      free(Pseed);
@@ -405,12 +418,12 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 
            
 	     MCXReporter rep;
-             OCL_ASSERT(cudaMemcpy(&rep,greporter[gpuid],sizeof(MCXReporter),cudaMemcpyDeviceToHost));
+             CUDA_ ASSERT(cudaMemcpy(&rep,greporter[gpuid],sizeof(MCXReporter),cudaMemcpyDeviceToHost));
 	     reporter.raytet+=rep.raytet;
              if(cfg->issavedet){
-                OCL_ASSERT(cudaMemcpy(&detected,gdetected[gpuid],sizeof(uint),cudaMemcpyDeviceToHost));
+                CUDA_ ASSERT(cudaMemcpy(&detected,gdetected[gpuid],sizeof(uint),cudaMemcpyDeviceToHost));
                
-                OCL_ASSERT(cudaMemcpy(Pdet,gdetphoton[gpuid],sizeof(float)*cfg->maxdetphoton*hostdetreclen,cudaMemcpyDeviceToHost));
+                CUDA_ ASSERT(cudaMemcpy(Pdet,gdetphoton[gpuid],sizeof(float)*cfg->maxdetphoton*hostdetreclen,cudaMemcpyDeviceToHost));
 		if(detected>cfg->maxdetphoton){
 			MMC_FPRINTF(cfg->flog,"WARNING: the detected photon (%d) \
 is more than what your have specified (%d), please use the -H option to specify a greater number\t"
@@ -433,7 +446,7 @@ is more than what your have specified (%d), please use the -H option to specify 
 	     if(cfg->issaveref){
 	        float *rawdref=(float*)calloc(sizeof(float),nflen);
 
-                OCL_ASSERT(cudaMemcpy(rawdref,gdref[gpuid],sizeof(float)*nflen,cudaMemcpyDeviceToHost));
+                CUDA_ ASSERT(cudaMemcpy(rawdref,gdref[gpuid],sizeof(float)*nflen,cudaMemcpyDeviceToHost));
 		for(i=0;i<nflen;i++)  //accumulate field, can be done in the GPU
 	            dref[i]+=rawdref[i]; //+rawfield[i+fieldlen];
 	        free(rawdref);			
@@ -443,7 +456,7 @@ is more than what your have specified (%d), please use the -H option to specify 
                 float *rawfield=(float*)malloc(sizeof(float)*fieldlen);
 
         	
-                OCL_ASSERT(cudaMemcpy(rawfield,gweight[gpuid],sizeof(float)*fieldlen,cudaMemcpyDeviceToHost));
+                CUDA_ ASSERT(cudaMemcpy(rawfield,gweight[gpuid],sizeof(float)*fieldlen,cudaMemcpyDeviceToHost));
         	MMC_FPRINTF(cfg->flog,"transfer complete:        %d ms\n",GetTimeMillis()-tic);  fflush(cfg->flog);
 
                 for(i=0;i<fieldlen;i++)  //accumulate field, can be done in the GPU
@@ -463,7 +476,7 @@ is more than what your have specified (%d), please use the -H option to specify 
         	if(cfg->isnormalized){
                     energy=calloc(sizeof(cl_float),gpu[gpuid].autothread<<1);
                     
-                    OCL_ASSERT(cudaMemcpy(energy,genergy[gpuid],sizeof(float)*(gpu[gpuid].autothread<<1),cudaMemcpyDeviceToHost));
+                    CUDA_ ASSERT(cudaMemcpy(energy,genergy[gpuid],sizeof(float)*(gpu[gpuid].autothread<<1),cudaMemcpyDeviceToHost));
 #pragma omp critical
 {
                     for(i=0;i<gpu[gpuid].autothread;i++){
@@ -479,7 +492,7 @@ is more than what your have specified (%d), please use the -H option to specify 
                Pseed=malloc(sizeof(uint)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN);
                for (i=0; i<gpu[gpuid].autothread*RAND_SEED_WORD_LEN; i++)
 		   Pseed[i]=rand();
-	       OCL_ASSERT(cudaMemcpy(gseed[gpuid],Pseed,sizeof(cl_uint)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN,cudaMemcpyHostToDevice));
+	       CUDA_ ASSERT(cudaMemcpy(gseed[gpuid],Pseed,sizeof(cl_uint)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN,cudaMemcpyHostToDevice));
 	       free(Pseed);
 	     }
              
