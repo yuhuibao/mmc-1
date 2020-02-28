@@ -61,7 +61,7 @@ typedef unsigned char uchar;
 
 typedef struct MMC_Parameter {
   float3 srcpos;
-  float3 srcdir;
+  float4 srcdir;
   float  tstart,tend;
   uint   isreflect,issavedet,issaveexit,ismomentum,isatomic,isspecular;
   float  Rtstep;
@@ -84,11 +84,11 @@ typedef struct MMC_Parameter {
   float  dstep;
   float  focus;
   int    nn, ne, nf;
-  float3 nmin;
+  float4 nmin;
   float  nout;
   uint   roulettesize;
   int    srcnum;
-  int4   crop0;
+  uint3   crop0;
   int    srcelemlen;
   float4 bary0;
   int    e0;
