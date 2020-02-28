@@ -31,7 +31,9 @@
 #define _MMC_UTILITIES_H
 
 #include <stdio.h>
-#include <vector_types.h>
+#ifndef __CUDA_ARCH__
+  #include "vector_types.h"
+#endif
 #include "cjson/cJSON.h"
 
 #ifdef _OPENMP                      ///< use multi-threading for running simulation on multiple GPUs
