@@ -799,7 +799,18 @@ __device__ float reflectray(__constant MCXParam *gcfg,float3 *c0, int *oldeid,in
     __global float *n_det, __global uint *detectedphoton, float *energytot, float *energyesc, float4 *gdetpos, __private GRandType *ran, int *raytet){
 
 	int oldeid,fixcount=0;
-	ray r={gcfg->srcpos,gcfg->srcdir,{MMC_UNDEFINED,0.f,0.f},gcfg->e0,0,0,1.f,0.f,0.f,0.f,ID_UNDEFINED,0.f};
+        ray r={gcfg->srcpos,
+                gcfg->srcdir,
+                {MMC_UNDEFINED,0.f,0.f},
+                gcfg->e0,
+                0,
+                0,
+                1.f,
+                0.f,
+                0.f,
+                0.f,
+                ID_UNDEFINED,
+                0.f};
 
 	//r.photonid=id;
 

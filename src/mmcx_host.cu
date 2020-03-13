@@ -26,6 +26,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "mmcx_host.h"
 #include "mmcx_core.h"
 #include "mcx_const.h"
 #include "tictoc.h"
@@ -162,13 +163,13 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      float3* gnode;
      int4 *gelem, *gfacenb,*gnormal,*gdetpos;
      int *gtype,*gsrcelem;
-     int *gseed,*gdetected;
+     uint **gseed,**gdetected;
      volatile int *progress, *gprogress;
      cudaEvent_t updateprogress;
-     float *gweight,*gdref,*gdetphoton,*genergy,*gsrcpattern;          /*read-write buffers*/
+     float **gweight,**gdref,**gdetphoton,**genergy,**gsrcpattern;          /*read-write buffers*/
      medium* gproperty;
      MCXParam* gparam;
-     MCXReporter* greporter;
+     MCXReporter** greporter;
      uint meshlen=((cfg->method==rtBLBadouelGrid) ? cfg->crop0.z : mesh->ne)<<cfg->nbuffer; // use 4 copies to reduce racing
      
      float  *field,*dref=NULL;
@@ -181,8 +182,8 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      uint detreclen=(2+((cfg->ismomentum)>0))*mesh->prop+(cfg->issaveexit>0)*6+1;
      uint hostdetreclen=detreclen+1;
      GPUInfo *gpu=NULL;
-
-     MCXParam param={cfg->srcpos, cfg->srcdir,
+     float3 srcdir = make_float3(cfg->srcdir.x,cfg->srcdir.y,cfg->srcdir.z);
+     MCXParam param={cfg->srcpos, srcdir,
 		     cfg->tstart, cfg->tend, (uint)cfg->isreflect,(uint)cfg->issavedet,(uint)cfg->issaveexit,
 		     (uint)cfg->ismomentum, (uint)cfg->isatomic, (uint)cfg->isspecular, 1.f/cfg->tstep, cfg->minenergy, 
 		     cfg->maxdetphoton, mesh->prop, cfg->detnum, (uint)cfg->voidtime, (uint)cfg->srctype, 
@@ -211,8 +212,15 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      if(gpuid<0)
           mcx_error(-1,"GPU ID must be non-zero",__FILE__,__LINE__);
      CUDA_ASSERT(cudaSetDevice(gpuid));
-
-#pragma omp master
+     gseed=(uint**)malloc(workdev*sizeof(uint*));
+     gweight=(float**)malloc(workdev*sizeof(float*));
+     gdref=(float**)malloc(workdev*sizeof(float*));
+     gdetphoton=(float**)malloc(workdev*sizeof(float*));
+     genergy=(float**)malloc(workdev*sizeof(float*));
+     gsrcpattern=(float**)malloc(workdev*sizeof(float*));
+     gdetected=(uint**)malloc(workdev*sizeof(uint*));
+     greporter=(MCXReporter**)malloc(workdev*sizeof(MCXReporter*));
+//#pragma omp master
 {
      if(cfg->exportfield==NULL)
          cfg->exportfield=mesh->weight;
@@ -223,7 +231,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      cfg->energyesc=0.f;
      cfg->runtime=0;
 }
-#pragma omp barrier
+//#pragma omp barrier
 
 	 if(!cfg->autopilot){
 	    gpu[gpuid].autothread=cfg->nthread;
@@ -241,7 +249,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      cfg->maxgate=(int)((cfg->tend-cfg->tstart)/cfg->tstep+0.5);
      param.maxgate=cfg->maxgate;
      uint nflen=mesh->nf*cfg->maxgate;
-#pragma omp master
+//#pragma omp master
      fullload=0.f;
      for(i=0;i<workdev;i++)
      	fullload+=cfg->workload[i];
@@ -251,7 +259,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      	    cfg->workload[i]=gpu[i].core;
 	fullload=totalcucore;
      }
-#pragma omp barrier
+//#pragma omp barrier
 
      threadphoton=(int)(cfg->nphoton*cfg->workload[i]/(fullload*gpu[gpuid].autothread*cfg->respin));
      oddphotons=(int)(cfg->nphoton*cfg->workload[i]/(fullload*cfg->respin)-threadphoton*gpu[gpuid].autothread);
@@ -268,15 +276,19 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      else
         srand(time(0));
 
-
+     // create gpu pointer gnode,gelem,gtype,gfacenb,gsrcelem,gnormal,gdetpos,gproperty and copy the data from cpu to gpu
      CUDA_ASSERT(cudaMalloc((void**)&gnode,sizeof(float3)*(mesh->nn)));
      CUDA_ASSERT(cudaMemcpy(gnode,mesh->node,sizeof(float3)*(mesh->nn),cudaMemcpyHostToDevice));
+
      CUDA_ASSERT(cudaMalloc((void**)&gelem,sizeof(int4)*(mesh->ne)));
      CUDA_ASSERT(cudaMemcpy(gelem,mesh->elem,sizeof(int4)*(mesh->ne),cudaMemcpyHostToDevice));
+
      CUDA_ASSERT(cudaMalloc((void**)&gtype,sizeof(int)*(mesh->ne)));
      CUDA_ASSERT(cudaMemcpy(gtype,mesh->type,sizeof(int)*(mesh->ne),cudaMemcpyHostToDevice));
+
      CUDA_ASSERT(cudaMalloc((void**)&gfacenb,sizeof(int4)*(mesh->ne)));
      CUDA_ASSERT(cudaMemcpy(gfacenb,mesh->facenb,sizeof(int4)*(mesh->ne),cudaMemcpyHostToDevice));
+
      if(mesh->srcelemlen>0){
          CUDA_ASSERT(cudaMalloc((void**)&gsrcelem,sizeof(int)*(mesh->srcelemlen)));
          CUDA_ASSERT(cudaMemcpy(gsrcelem,mesh->srcelem,sizeof(int)*(mesh->srcelemlen),cudaMemcpyHostToDevice));
@@ -286,6 +298,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      
      CUDA_ASSERT(cudaMalloc((void**)&gnormal,sizeof(float4)*(mesh->ne)*4));
      CUDA_ASSERT(cudaMemcpy(gnormal,tracer->n,sizeof(float4)*(mesh->ne)*4,cudaMemcpyHostToDevice));
+
      if(cfg->detpos && cfg->detnum){
            CUDA_ASSERT(cudaMalloc((void**)&gdetpos,sizeof(float4)*(cfg->detnum)));
            CUDA_ASSERT(cudaMemcpy(gdetpos,cfg->detpos,sizeof(float4)*(cfg->detnum),cudaMemcpyHostToDevice));
@@ -295,28 +308,34 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 
      CUDA_ASSERT(cudaMalloc((void**)&gproperty,(mesh->prop+1+cfg->isextdet)*sizeof(medium)));
      CUDA_ASSERT(cudaMemcpy(gproperty,mesh->med,(mesh->prop+1+cfg->isextdet)*sizeof(medium),cudaMemcpyHostToDevice));
-          
+     // gparam     
      CUDA_ASSERT(cudaMalloc((void **)&gparam, sizeof(MCXParam)));
      CUDA_ASSERT(cudaMemcpyToSymbol(gparam,   &param, sizeof(MCXParam), 0, cudaMemcpyHostToDevice));
+     // gprogress
      CUDA_ASSERT(cudaHostAlloc((void **)&progress, sizeof(int), cudaHostAllocMapped));
      CUDA_ASSERT(cudaHostGetDevicePointer((int **)&gprogress, (int *)progress, 0));
      *progress=0;
 
+
+
+     
      Pseed=(uint*)malloc(sizeof(int)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN);
      energy=(float*)calloc(sizeof(float),gpu[gpuid].autothread<<1);
-       
+     for (j=0; j<gpu[i].autothread*RAND_SEED_WORD_LEN;j++)
+           Pseed[j]=rand();
+  
        CUDA_ASSERT(cudaMalloc((void**)&gseed[gpuid],sizeof(uint)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN));  
-       CUDA_ASSERT(cudaMemcpy((uint*)gseed[gpuid],Pseed,sizeof(uint)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN,cudaMemcpyHostToDevice));
+       CUDA_ASSERT(cudaMemcpy(gseed[gpuid],Pseed,sizeof(uint)*gpu[gpuid].autothread*RAND_SEED_WORD_LEN,cudaMemcpyHostToDevice));
 
        CUDA_ASSERT(cudaMalloc((void**)&gweight[gpuid],sizeof(float)*fieldlen));
-       CUDA_ASSERT(cudaMemcpy((float*)gweight[gpuid],field,sizeof(float)*fieldlen,cudaMemcpyHostToDevice));
+       CUDA_ASSERT(cudaMemcpy(gweight[gpuid],field,sizeof(float)*fieldlen,cudaMemcpyHostToDevice));
 
 
        CUDA_ASSERT(cudaMalloc((void**)&gdref[gpuid],sizeof(float)*nflen));
-       CUDA_ASSERT(cudaMemcpy((float*)gdref[gpuid],dref,sizeof(float)*nflen,cudaMemcpyHostToDevice));
+       CUDA_ASSERT(cudaMemcpy(gdref[gpuid],dref,sizeof(float)*nflen,cudaMemcpyHostToDevice));
 
        CUDA_ASSERT(cudaMalloc((void**)&gdetphoton[gpuid],sizeof(float)*cfg->maxdetphoton*hostdetreclen));
-       CUDA_ASSERT(cudaMemcpy((float*)gdetphoton[gpuid],Pdet,sizeof(float)*cfg->maxdetphoton*hostdetreclen,cudaMemcpyHostToDevice));
+       CUDA_ASSERT(cudaMemcpy(gdetphoton[gpuid],Pdet,sizeof(float)*cfg->maxdetphoton*hostdetreclen,cudaMemcpyHostToDevice));
 
        CUDA_ASSERT(cudaMalloc((void**)&genergy[gpuid],sizeof(float)*(gpu[gpuid].autothread<<1)));
        CUDA_ASSERT(cudaMemcpy(genergy[gpuid],energy,sizeof(float)*(gpu[gpuid].autothread<<1),cudaMemcpyHostToDevice));
@@ -339,7 +358,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      free(energy);
      tic=StartTimer();
 
-#pragma omp master
+//#pragma omp master
 {
      mcx_printheader(cfg);
 
@@ -354,7 +373,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      MMC_FPRINTF(cfg->flog,"- compiled with: [RNG] %s [Seed Length] %d\n",MCX_RNG_NAME,RAND_SEED_WORD_LEN);
      fflush(cfg->flog);
 }
-#pragma omp barrier
+//#pragma omp barrier
 
      
 
@@ -387,7 +406,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
                // launch mcxkernel
                mmc_main_loop<<<mcgrid,mcblock,cfg->issavedet? sizeof(cl_float)*((int)gpu[i].autoblock)*detreclen : sizeof(int)>>>(threadphoton,oddphotons,gparam,gnode,gelem,gweight,gdref,gtype,gfacenb,gsrcelem,gnormal, \
                         gproperty,gdetpos,gdetected,gseed,gprogress,genergy,greporter)
-   #pragma omp master
+   //#pragma omp master
    {            
            if((cfg->debuglevel & MCX_DEBUG_PROGRESS)){
 	     int p0 = 0, ndone=-1;
@@ -412,7 +431,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
            tic1=GetTimeMillis();
 	   toc+=tic1-tic0;
            MMC_FPRINTF(cfg->flog,"kernel complete:  \t%d ms\nretrieving flux ... \t",tic1-tic);fflush(cfg->flog);
-#pragma omp critical
+//#pragma omp critical
            if(cfg->runtime<tic1-tic)
                cfg->runtime=tic1-tic;
 
@@ -431,11 +450,11 @@ is more than what your have specified (%d), please use the -H option to specify 
 		}else{
 			MMC_FPRINTF(cfg->flog,"detected %d photons, total: %d\t",detected,cfg->detectedcount+detected);
 		}
-#pragma omp atomic
+//#pragma omp atomic
                 cfg->his.detected+=detected;
                 detected=MIN(detected,cfg->maxdetphoton);
 		if(cfg->exportdetected){
-#pragma omp critical
+//#pragma omp critical
 {
                         cfg->exportdetected=(float*)realloc(cfg->exportdetected,(cfg->detectedcount+detected)*hostdetreclen*sizeof(float));
 	                memcpy(cfg->exportdetected+cfg->detectedcount*(hostdetreclen),Pdet,detected*(hostdetreclen)*sizeof(float));
@@ -477,7 +496,7 @@ is more than what your have specified (%d), please use the -H option to specify 
                     energy=calloc(sizeof(cl_float),gpu[gpuid].autothread<<1);
                     
                     CUDA_ASSERT(cudaMemcpy(energy,genergy[gpuid],sizeof(float)*(gpu[gpuid].autothread<<1),cudaMemcpyDeviceToHost));
-#pragma omp critical
+//#pragma omp critical
 {
                     for(i=0;i<gpu[gpuid].autothread;i++){
                 	cfg->energyesc+=energy[(i<<1)];
@@ -499,14 +518,14 @@ is more than what your have specified (%d), please use the -H option to specify 
            // loop over work devices
        }// iteration
      }// time gates
-#pragma omp master
+//#pragma omp master
 {
      fieldlen=(fieldlen>>cfg->nbuffer);
      field=realloc(field,sizeof(field[0])*fieldlen);
      if(cfg->exportfield){
          if(cfg->basisorder==0 || cfg->method==rtBLBadouelGrid){
              for(i=0;i<fieldlen;i++)
-#pragma omp atomic
+//#pragma omp atomic
 	         cfg->exportfield[i]+=field[i];
 	 }else{
              for(i=0;i<cfg->maxgate;i++)
@@ -553,7 +572,7 @@ is more than what your have specified (%d), please use the -H option to specify 
              cfg->energytot,(cfg->energytot-cfg->energyesc)/cfg->energytot*100.f);
      fflush(cfg->flog);
 }
-#pragma omp barrier
+//#pragma omp barrier
      cudaFree(gnode);
      cudaFree(gelem);
      cudaFree(gtype);

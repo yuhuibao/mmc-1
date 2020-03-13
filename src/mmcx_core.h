@@ -1,67 +1,30 @@
-/***************************************************************************//**
-**  \mainpage Monte Carlo eXtreme - GPU accelerated Monte Carlo Photon Migration
-**
-**  \author Qianqian Fang <q.fang at neu.edu>
-**  \copyright Qianqian Fang, 2009-2018
-**
-**  \section sref Reference:
-**  \li \c (\b Fang2009) Qianqian Fang and David A. Boas, 
-**          <a href="http://www.opticsinfobase.org/abstract.cfm?uri=oe-17-22-20178">
-**          "Monte Carlo Simulation of Photon Migration in 3D Turbid Media Accelerated 
-**          by Graphics Processing Units,"</a> Optics Express, 17(22) 20178-20190 (2009).
-**  \li \c (\b Yu2018) Leiming Yu, Fanny Nina-Paravecino, David Kaeli, and Qianqian Fang,
-**          "Scalable and massively parallel Monte Carlo photon transport
-**           simulations for heterogeneous computing platforms," J. Biomed. Optics, 23(1), 010504, 2018.
-**
-**  \section slicense License
-**          GPL v3, see LICENSE.txt for details
-*******************************************************************************/
-
-/***************************************************************************//**
-\file    mmcx_core.h
-
-@brief   MMC GPU kernel header file
-*******************************************************************************/
-
-#ifndef _MCEXTREME_GPU_LAUNCH_H
-#define _MCEXTREME_GPU_LAUNCH_H
-
+#ifndef _MMC_CORE_H
+#define _MMC_CORE_H
 #include "mcx_utils.h"
-#include "simpmesh.h"
-#include "tettracing.h"
 
-#define CUDA_ASSERT(a)      mcx_cu_assess((a),__FILE__,__LINE__) ///< macro to report CUDA errors
-
-#define RAND_SEED_WORD_LEN      4        //48 bit packed with 64bit length
-
-#ifdef  __cplusplus
-extern "C" {
-#endif
-
-
-#define ABS(a)  ((a)<0?-(a):(a))
-
-#define MCX_DEBUG_RNG       2                   /**< MCX debug flags */
-#define MCX_DEBUG_MOVE      1
-#define MCX_DEBUG_PROGRESS  2048
-
-#define MIN(a,b)           ((a)<(b)?(a):(b))
-void mcx_cu_assess(cudaError_t cuerr,const char *file, const int linenum);
-
-
-
-
-typedef unsigned char uchar;
-
-/**
- * @brief Simulation constant parameters stored in the constant memory
- *
- * This struct stores all constants used in the simulation.
- */
+typedef struct MMC_Ray{
+	float3 p0;                    /**< current photon position */
+	float3 vec;                   /**< current photon direction vector */
+	float3 pout;                  /**< the intersection position of the ray to the enclosing tet */
+	int eid;                      /**< the index of the enclosing tet (starting from 1) */
+	int faceid;                   /**< the index of the face at which ray intersects with tet */
+	int isend;                    /**< if 1, the scattering event ends before reaching the intersection */
+	float weight;                 /**< photon current weight */
+	float photontimer;            /**< the total time-of-fly of the photon */
+	float slen;                   /**< the remaining unitless scattering length = length*mus  */
+	float Lmove;                  /**< last photon movement length */
+	uint oldidx;
+	float oldweight;
+	//int nexteid;                  /**< the index to the neighboring tet to be moved into */
+	//float4 bary0;                 /**< the Barycentric coordinate of the intersection with the tet */
+	//float slen0;                  /**< initial unitless scattering length = length*mus */
+	//unsigned int photonid;        /**< index of the current photon */
+	//unsigned int posidx;	      /**< launch position index of the photon for pattern source type */
+} ray __attribute__ ((aligned (32)));
 
 typedef struct MMC_Parameter {
   float3 srcpos;
-  float4 srcdir;
+  float3 srcdir;
   float  tstart,tend;
   uint   isreflect,issavedet,issaveexit,ismomentum,isatomic,isspecular;
   float  Rtstep;
@@ -103,12 +66,5 @@ typedef struct GPU_reporter{
   float  raytet;
 } MCXReporter  __attribute__ ((aligned (32)));
 
-void mmc_run_cl(mcconfig *cfg, tetmesh *mesh, raytracer *tracer);
-
-int mcx_list_gpu(mcconfig *cfg, GPUInfo **info);
-#ifdef  __cplusplus
-}
-#endif
 
 #endif
-
