@@ -35,7 +35,10 @@
 #ifdef _OPENMP
   #include <omp.h>
 #endif
-
+__global__ void mmc_main_loop(const int nphoton, const int ophoton, const MCXParam *gcfg,
+    float3 *node,const int *elem,  float *weight, float *dref, const int *type, const int *facenb, const int *srcelem, float4 *normal, 
+    const medium *med,  float4 *gdetpos, float *n_det,  uint *detectedphoton, 
+    uint *n_seed,  int *progress,  float *energy,  MCXReporter *reporter);
 /***************************************************************************//**
 In this unit, we first launch a master thread and initialize the 
 necessary data structures. This include the command line options (cfg),
@@ -348,10 +351,10 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
 
        if(cfg->srctype==MCX_SRC_PATTERN){
            CUDA_ASSERT(cudaMalloc((void**)&gsrcpattern[gpuid],sizeof(float)*(int)(cfg->srcparam1.w*cfg->srcparam2.w)));
-           CUDA_ASSERT(cudaMemcpy(gsrcpattern[gpuid]cfg->srcpattern,sizeof(float)*(int)(cfg->srcparam1.w*cfg->srcparam2.w),cudaMemcpyHostToDevice));
+           CUDA_ASSERT(cudaMemcpy(gsrcpattern[gpuid],cfg->srcpattern,sizeof(float)*(int)(cfg->srcparam1.w*cfg->srcparam2.w),cudaMemcpyHostToDevice));
        }else if(cfg->srctype==MCX_SRC_PATTERN3D){
            CUDA_ASSERT(cudaMalloc((void**)&gsrcpattern[gpuid],sizeof(float)*(int)(cfg->srcparam1.x*cfg->srcparam1.y*cfg->srcparam1.z)));
-           CUDA_ASSERT(cudaMemcpy(gsrcpattern[gpuid]cfg->srcpattern,sizeof(float)*(int)(cfg->srcparam1.x*cfg->srcparam1.y*cfg->srcparam1.z),cudaMemcpyHostToDevice));
+           CUDA_ASSERT(cudaMemcpy(gsrcpattern[gpuid],cfg->srcpattern,sizeof(float)*(int)(cfg->srcparam1.x*cfg->srcparam1.y*cfg->srcparam1.z),cudaMemcpyHostToDevice));
        }else
            gsrcpattern[gpuid]=NULL;
      free(Pseed);
@@ -370,14 +373,14 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
      MCX_FPRINTF(cfg->flog,"- code name: [Vanilla MCX] compiled by nvcc [%d.%d] with CUDA [%d]\n",
          __CUDACC_VER_MAJOR__,__CUDACC_VER_MINOR__,CUDART_VERSION);
 #endif
-     MMC_FPRINTF(cfg->flog,"- compiled with: [RNG] %s [Seed Length] %d\n",MCX_RNG_NAME,RAND_SEED_WORD_LEN);
+     MCX_FPRINTF(cfg->flog,"- compiled with: [RNG] %s [Seed Length] %d\n",MCX_RNG_NAME,RAND_SEED_WORD_LEN);
      fflush(cfg->flog);
 }
 //#pragma omp barrier
 
      
 
-         MMC_FPRINTF(cfg->flog,"- [device %d(%d): %s] threadph=%d oddphotons=%d np=%.1f nthread=%d nblock=%d repetition=%d\n",gpuid+1, gpu[gpuid].id, gpu[gpuid].name,threadphoton,oddphotons,
+         MCX_FPRINTF(cfg->flog,"- [device %d(%d): %s] threadph=%d oddphotons=%d np=%.1f nthread=%d nblock=%d repetition=%d\n",gpuid+1, gpu[gpuid].id, gpu[gpuid].name,threadphoton,oddphotons,
                cfg->nphoton*cfg->workload[gpuid]/fullload,(int)gpu[gpuid].autothread,(int)gpu[gpuid].autoblock,cfg->respin);
 
 
@@ -390,12 +393,12 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
        twindow0=t;
        twindow1=t+cfg->tstep*cfg->maxgate;
 
-       MMC_FPRINTF(cfg->flog,"lauching mcx_main_loop for time window [%.1fns %.1fns] ...\n"
+       MCX_FPRINTF(cfg->flog,"lauching mcx_main_loop for time window [%.1fns %.1fns] ...\n"
            ,twindow0*1e9,twindow1*1e9);fflush(cfg->flog);
 
        //total number of repetition for the simulations, results will be accumulated to field
        for(iter=0;iter<cfg->respin;iter++){
-           MMC_FPRINTF(cfg->flog,"simulation run#%2d ... \n",iter+1); fflush(cfg->flog);fflush(cfg->flog);
+           MCX_FPRINTF(cfg->flog,"simulation run#%2d ... \n",iter+1); fflush(cfg->flog);fflush(cfg->flog);
 	   param.tstart=twindow0;
 	   param.tend=twindow1;
 
@@ -404,7 +407,7 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
                
                
                // launch mcxkernel
-               mmc_main_loop<<<mcgrid,mcblock,cfg->issavedet? sizeof(cl_float)*((int)gpu[i].autoblock)*detreclen : sizeof(int)>>>(threadphoton,oddphotons,gparam,gnode,gelem,gweight,gdref,gtype,gfacenb,gsrcelem,gnormal, \
+               mmc_main_loop<<<mcgrid,mcblock,(cfg->issavedet? sizeof(float)*((int)gpu[i].autoblock)*detreclen : sizeof(int))>>>(threadphoton,oddphotons,gparam,gnode,gelem,gweight,gdref,gtype,gfacenb,gsrcelem,gnormal, \
                         gproperty,gdetpos,gdetected,gseed,gprogress,genergy,greporter)
    //#pragma omp master
    {            
@@ -423,14 +426,14 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
                sleep_ms(100);
 	     }while (p0 < gpu[0].autothread);
              mcx_progressbar(cfg->nphoton,cfg);
-             MMC_FPRINTF(cfg->flog,"\n");
+             MCX_FPRINTF(cfg->flog,"\n");
 
            }
    }
            CUDA_ASSERT(cudaDeviceSynchronize());
            tic1=GetTimeMillis();
 	   toc+=tic1-tic0;
-           MMC_FPRINTF(cfg->flog,"kernel complete:  \t%d ms\nretrieving flux ... \t",tic1-tic);fflush(cfg->flog);
+           MCX_FPRINTF(cfg->flog,"kernel complete:  \t%d ms\nretrieving flux ... \t",tic1-tic);fflush(cfg->flog);
 //#pragma omp critical
            if(cfg->runtime<tic1-tic)
                cfg->runtime=tic1-tic;
@@ -444,11 +447,11 @@ void mmc_run_cl(mcconfig *cfg,tetmesh *mesh, raytracer *tracer){
                
                 CUDA_ASSERT(cudaMemcpy(Pdet,gdetphoton[gpuid],sizeof(float)*cfg->maxdetphoton*hostdetreclen,cudaMemcpyDeviceToHost));
 		if(detected>cfg->maxdetphoton){
-			MMC_FPRINTF(cfg->flog,"WARNING: the detected photon (%d) \
+			MCX_FPRINTF(cfg->flog,"WARNING: the detected photon (%d) \
 is more than what your have specified (%d), please use the -H option to specify a greater number\t"
                            ,detected,cfg->maxdetphoton);
 		}else{
-			MMC_FPRINTF(cfg->flog,"detected %d photons, total: %d\t",detected,cfg->detectedcount+detected);
+			MCX_FPRINTF(cfg->flog,"detected %d photons, total: %d\t",detected,cfg->detectedcount+detected);
 		}
 //#pragma omp atomic
                 cfg->his.detected+=detected;
@@ -476,7 +479,7 @@ is more than what your have specified (%d), please use the -H option to specify 
 
         	
                 CUDA_ASSERT(cudaMemcpy(rawfield,gweight[gpuid],sizeof(float)*fieldlen,cudaMemcpyDeviceToHost));
-        	MMC_FPRINTF(cfg->flog,"transfer complete:        %d ms\n",GetTimeMillis()-tic);  fflush(cfg->flog);
+        	MCX_FPRINTF(cfg->flog,"transfer complete:        %d ms\n",GetTimeMillis()-tic);  fflush(cfg->flog);
 
                 for(i=0;i<fieldlen;i++)  //accumulate field, can be done in the GPU
 	            field[(i>>cfg->nbuffer)]+=rawfield[i]; //+rawfield[i+fieldlen];
@@ -544,15 +547,15 @@ is more than what your have specified (%d), please use the -H option to specify 
      }
 
      if(cfg->isnormalized){
-         MMC_FPRINTF(cfg->flog,"normalizing raw data ...\t");fflush(cfg->flog);
+         MCX_FPRINTF(cfg->flog,"normalizing raw data ...\t");fflush(cfg->flog);
 
          cfg->energyabs=cfg->energytot-cfg->energyesc;
 	 mesh_normalize(mesh,cfg,cfg->energyabs,cfg->energytot,0);
      }
      if(cfg->issave2pt && cfg->parentid==mpStandalone){
-         MMC_FPRINTF(cfg->flog,"saving data to file ...\t");
+         MCX_FPRINTF(cfg->flog,"saving data to file ...\t");
          mesh_saveweight(mesh,cfg,0);
-         MMC_FPRINTF(cfg->flog,"saving data complete : %d ms\n\n",GetTimeMillis()-tic);
+         MCX_FPRINTF(cfg->flog,"saving data complete : %d ms\n\n",GetTimeMillis()-tic);
          fflush(cfg->flog);
      }
      if(cfg->issavedet && cfg->parentid==mpStandalone && cfg->exportdetected){
@@ -562,13 +565,13 @@ is more than what your have specified (%d), please use the -H option to specify 
          mesh_savedetphoton(cfg->exportdetected,NULL,cfg->detectedcount,(sizeof(GRandType)*RAND_BUF_LEN),cfg);
      }
      if(cfg->issaveref){
-	MMC_FPRINTF(cfg->flog,"saving surface diffuse reflectance ...");
+	MCX_FPRINTF(cfg->flog,"saving surface diffuse reflectance ...");
 	mesh_saveweight(mesh,cfg,1);
      }
      // total energy here equals total simulated photons+unfinished photons for all threads
-     MMC_FPRINTF(cfg->flog,"simulated %ld photons (%ld) with %d devices (ray-tet %.0f)\nMCX simulation speed: %.2f photon/ms\n",
+     MCX_FPRINTF(cfg->flog,"simulated %ld photons (%ld) with %d devices (ray-tet %.0f)\nMCX simulation speed: %.2f photon/ms\n",
              cfg->nphoton,cfg->nphoton,workdev, reporter.raytet,(double)cfg->nphoton/toc);
-     MMC_FPRINTF(cfg->flog,"total simulated energy: %.2f\tabsorbed: %5.5f%%\n(loss due to initial specular reflection is excluded in the total)\n",
+     MCX_FPRINTF(cfg->flog,"total simulated energy: %.2f\tabsorbed: %5.5f%%\n(loss due to initial specular reflection is excluded in the total)\n",
              cfg->energytot,(cfg->energytot-cfg->energyesc)/cfg->energytot*100.f);
      fflush(cfg->flog);
 }
