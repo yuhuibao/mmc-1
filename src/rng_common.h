@@ -36,7 +36,7 @@
 
 #ifndef _MMC_RNG_COMMON_H
 #define _MMC_RNG_COMMON_H
-
+#include "fp.h"
 #define TWO_PI (M_PI * 2.0)
 
 

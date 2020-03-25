@@ -15,7 +15,7 @@
 #include "debug.h"
 #include "mmcx_core.h"
 
-#include "xorshift128p_rand.cu"  ///< use xorshift128+ RNG (XORSHIFT128P)
+#include "xorshift128p_rand_gpu.cu"  ///< use xorshift128+ RNG (XORSHIFT128P)
 
 #ifdef __CUDA_ARCH__
 #define __constant const
