@@ -12,6 +12,7 @@
                                                                                **  \section slicense License
                                                                                **          GPL v3, see LICENSE.txt for details
                                                                                *******************************************************************************/
+#include "debug.h"
 #include "mmcx_core.h"
 
 #include "xorshift128p_rand.cu"  ///< use xorshift128+ RNG (XORSHIFT128P)
@@ -114,7 +115,6 @@ __device__ float clamp(float f, float a, float b) { return max(a, min(f, b)); }
 
 #define FL4(f) make_float4(f, f, f, f)
 #define FL3(f) make_float3(f, f, f)
-#define FLT_EPSILON 1.19209290E-07F
 #define atomicadd(a, b) atomicAdd(a, b)
 #define atomic_add(a, b) atomicAdd(a, b)
 #define sincos(a, b) sincosf(a, b)
@@ -136,7 +136,7 @@ __device__ float clamp(float f, float a, float b) { return max(a, min(f, b)); }
 #define FLOAT4VEC float4
 #define TOFLOAT4
 #endif
-
+#define CUDA_ASSERT(a)      mcx_cu_assess((a),__FILE__,__LINE__) ///< macro to report CUDA errors
 #ifdef MCX_USE_NATIVE
 #define MCX_MATHFUN(fun) native_##fun
 #define MCX_SINCOS(theta, osin, ocos) \
@@ -149,13 +149,6 @@ __device__ float clamp(float f, float a, float b) { return max(a, min(f, b)); }
 //#define MCX_SINCOS(theta,osin,ocos)   (ocos)=sincos((theta),&(osin))
 #endif
 
-#ifdef MCX_GPU_DEBUG
-#define MMC_FPRINTF(x) printf x  // enable debugging in CPU mode
-#else
-#define MMC_FPRINTF(x) \
-  {}
-#endif
-
 #define R_PI 0.318309886183791f
 
 #define ONE_PI 3.1415926535897932f  // pi
@@ -164,7 +157,6 @@ __device__ float clamp(float f, float a, float b) { return max(a, min(f, b)); }
 #define C0 299792458000.f            // speed of light in mm/s
 #define R_C0 3.335640951981520e-12f  // 1/C0 in s/mm
 
-#define EPS FLT_EPSILON               // round-off limit
 #define VERY_BIG (1.f / FLT_EPSILON)  // a big number
 #define JUST_ABOVE_ONE 1.0001f        // test for boundary
 #define SAME_VOXEL -9999.f            // scatter within a voxel

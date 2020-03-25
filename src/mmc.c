@@ -31,6 +31,8 @@
 
 #ifdef USE_OPENCL
     #include "mmc_cl_host.h"
+#else
+    #include "mmcx_host.h"
 #endif
 
 /***************************************************************************//**

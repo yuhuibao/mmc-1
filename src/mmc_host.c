@@ -31,6 +31,7 @@
 #include <string.h>
 #include "mmc_host.h"
 #include "tictoc.h"
+#include "debug.h"
 
 #ifdef _OPENMP
   #include <omp.h>

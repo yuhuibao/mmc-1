@@ -25,7 +25,7 @@ BIN        := bin
 BUILT      := built
 BINDIR     := $(BIN)
 OBJDIR 	   := $(BUILT)
-CCFLAGS    += -c -Wall -g -fno-strict-aliasing#-pedantic -std=c99 -mfpmath=sse -ffast-math -mtune=core2
+CCFLAGS    += -c -Wall -Werror -g -fno-strict-aliasing#-pedantic -std=c99 -mfpmath=sse -ffast-math -mtune=core2
 INCLUDEDIR := $(MMCDIR)/src
 AROUTPUT   += -o
 MAKE       := make

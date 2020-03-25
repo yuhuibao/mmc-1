@@ -36,7 +36,7 @@
 #include <sys/ioctl.h>
 #include "mcx_utils.h"
 #include "mcx_const.h"
-
+#include "debug.h"
 
 #include "nifti1.h"
 

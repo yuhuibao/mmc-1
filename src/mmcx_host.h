@@ -23,14 +23,14 @@
 @brief   MMC GPU kernel header file
 *******************************************************************************/
 
-#ifndef _MMC_HOSTCODE_H
-#define _MMC_HOSTCODE_H
+#ifndef _MMCX_HOSTCODE_H
+#define _MMCX_HOSTCODE_H
 
 #include "mcx_utils.h"
 #include "simpmesh.h"
 
 
-#define CUDA_ASSERT(a)      mcx_cu_assess((a),__FILE__,__LINE__) ///< macro to report CUDA errors
+
 
 #define RAND_SEED_WORD_LEN      4        //48 bit packed with 64bit length
 
@@ -45,8 +45,7 @@ extern "C" {
 #define MCX_DEBUG_MOVE      1
 #define MCX_DEBUG_PROGRESS  2048
 
-#define MIN(a,b)           ((a)<(b)?(a):(b))
-void mcx_cu_assess(cudaError_t cuerr,const char *file, const int linenum);
+
 
 
 
