@@ -20,6 +20,7 @@
 #else
 #define MMC_FPRINTF(fp, ...) fprintf(fp, __VA_ARGS__)
 #define MCX_FPRINTF(fp, ...) fprintf(fp, __VA_ARGS__)
+#define MMC_FPRINTF(x) printf x
 #endif
 
 #endif  // DEBUG_H_

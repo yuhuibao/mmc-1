@@ -161,7 +161,6 @@ __device__ float clamp(float f, float a, float b) { return max(a, min(f, b)); }
 #define JUST_ABOVE_ONE 1.0001f        // test for boundary
 #define SAME_VOXEL -9999.f            // scatter within a voxel
 #define NO_LAUNCH 9999                // when fail to launch, for debug
-#define MAX_PROP 2000                 /*maximum property number*/
 #define ID_UNDEFINED \
   0xFFFFFFFFU /**< flag indicating the index is outside of the volume */
 

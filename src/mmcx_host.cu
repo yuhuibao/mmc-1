@@ -35,7 +35,7 @@
 #include "mmcx_core.h"
 #include "mmcx_host.h"
 #include "tictoc.h"
-
+#include "debug.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -53,7 +53,7 @@ this unit, we first launch a master thread and initialize the necessary data
 structures.This include the command line options(cfg), tetrahedral mesh(mesh)
 and the ray tracer precomputed data (tracer).
 ******************************************************************************/
-
+#define CUDA_ASSERT(a)      mcx_cu_assess((a),__FILE__,__LINE__) ///< macro to report CUDA error
 int mcx_corecount(int v1, int v2) {
   int v = v1 * 10 + v2;
   if (v < 20)
