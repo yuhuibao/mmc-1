@@ -26,16 +26,16 @@
   \brief   << Driver program of MMC >>
 */
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <stdint.h>
+#include "debug.h"
 #include "mcx_const.h"
 #include "mcx_utils.h"
 #include "mmcx_core.h"
 #include "mmcx_host.h"
 #include "tictoc.h"
-#include "debug.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -53,7 +53,8 @@ this unit, we first launch a master thread and initialize the necessary data
 structures.This include the command line options(cfg), tetrahedral mesh(mesh)
 and the ray tracer precomputed data (tracer).
 ******************************************************************************/
-#define CUDA_ASSERT(a)      mcx_cu_assess((a),__FILE__,__LINE__) ///< macro to report CUDA error
+#define CUDA_ASSERT(a) \
+  mcx_cu_assess((a), __FILE__, __LINE__)  ///< macro to report CUDA error
 int mcx_corecount(int v1, int v2) {
   int v = v1 * 10 + v2;
   if (v < 20)
@@ -195,7 +196,6 @@ void mmc_run_cl(mcconfig *cfg, tetmesh *mesh, raytracer *tracer) {
   uint tic, tic0, tic1, toc = 0, fieldlen;
   int threadphoton, oddphotons;
   dim3 mcgrid, mcblock;
-  int status = 0;
 
   uint totalcucore;
 
@@ -222,7 +222,6 @@ void mmc_run_cl(mcconfig *cfg, tetmesh *mesh, raytracer *tracer) {
   uint *Pseed;
   float *Pdet;
 
-  char opt[MAX_PATH_LENGTH] = {'\0'};
   uint detreclen = (2 + ((cfg->ismomentum) > 0)) * mesh->prop +
                    (cfg->issaveexit > 0) * 6 + 1;
   uint hostdetreclen = detreclen + 1;
@@ -526,25 +525,9 @@ void mmc_run_cl(mcconfig *cfg, tetmesh *mesh, raytracer *tracer) {
         sharedMemSize = sizeof(float) * ((int)gpu[i].autoblock) * detreclen;
       }
       mmc_main_loop<<<mcgrid, mcblock, sharedMemSize>>>(
-          threadphoton, 
-          oddphotons, 
-          gparam, 
-          gnode, 
-          (int*)gelem, 
-          gweight, 
-          gdref, 
-          gtype,
-          (int *)gfacenb, 
-          gsrcelem, 
-          gnormal, 
-          gproperty, 
-          gdetpos, 
-          gdetphoton,
-          gdetected, 
-          gseed,
-          (int *)gprogress, 
-          genergy, 
-          greporter);
+          threadphoton, oddphotons, gparam, gnode, (int *)gelem, gweight, gdref,
+          gtype, (int *)gfacenb, gsrcelem, gnormal, gproperty, gdetpos,
+          gdetphoton, gdetected, gseed, (int *)gprogress, genergy, greporter);
 
       //#pragma omp master
       {
@@ -585,10 +568,9 @@ void mmc_run_cl(mcconfig *cfg, tetmesh *mesh, raytracer *tracer) {
         CUDA_ASSERT(cudaMemcpy(&detected, gdetected, sizeof(uint),
                                cudaMemcpyDeviceToHost));
 
-        CUDA_ASSERT(
-            cudaMemcpy(Pdet, gdetphoton,
-                       sizeof(float) * cfg->maxdetphoton * hostdetreclen,
-                       cudaMemcpyDeviceToHost));
+        CUDA_ASSERT(cudaMemcpy(
+            Pdet, gdetphoton, sizeof(float) * cfg->maxdetphoton * hostdetreclen,
+            cudaMemcpyDeviceToHost));
         if (detected > cfg->maxdetphoton) {
           MCX_FPRINTF(cfg->flog,
                       "WARNING: the detected photon (%d) \
@@ -626,8 +608,7 @@ void mmc_run_cl(mcconfig *cfg, tetmesh *mesh, raytracer *tracer) {
       if (cfg->issave2pt) {
         float *rawfield = (float *)malloc(sizeof(float) * fieldlen);
 
-        CUDA_ASSERT(cudaMemcpy(rawfield, gweight,
-                               sizeof(float) * fieldlen,
+        CUDA_ASSERT(cudaMemcpy(rawfield, gweight, sizeof(float) * fieldlen,
                                cudaMemcpyDeviceToHost));
         MCX_FPRINTF(cfg->flog, "transfer complete:        %d ms\n",
                     GetTimeMillis() - tic);
@@ -649,7 +630,7 @@ void mmc_run_cl(mcconfig *cfg, tetmesh *mesh, raytracer *tracer) {
                     }
          */
         if (cfg->isnormalized) {
-          energy = (float*)calloc(sizeof(float), gpu[gpuid].autothread << 1);
+          energy = (float *)calloc(sizeof(float), gpu[gpuid].autothread << 1);
 
           CUDA_ASSERT(cudaMemcpy(energy, genergy,
                                  sizeof(float) * (gpu[gpuid].autothread << 1),
@@ -667,8 +648,8 @@ void mmc_run_cl(mcconfig *cfg, tetmesh *mesh, raytracer *tracer) {
         }
       }
       if (cfg->respin > 1 && RAND_SEED_WORD_LEN > 1) {
-        Pseed =
-            (uint*)malloc(sizeof(uint) * gpu[gpuid].autothread * RAND_SEED_WORD_LEN);
+        Pseed = (uint *)malloc(sizeof(uint) * gpu[gpuid].autothread *
+                               RAND_SEED_WORD_LEN);
         for (i = 0; i < gpu[gpuid].autothread * RAND_SEED_WORD_LEN; i++)
           Pseed[i] = rand();
         CUDA_ASSERT(cudaMemcpy(
@@ -684,7 +665,7 @@ void mmc_run_cl(mcconfig *cfg, tetmesh *mesh, raytracer *tracer) {
   //#pragma omp master
   {
     fieldlen = (fieldlen >> cfg->nbuffer);
-    field = (float*)realloc(field, sizeof(field[0]) * fieldlen);
+    field = (float *)realloc(field, sizeof(field[0]) * fieldlen);
     if (cfg->exportfield) {
       if (cfg->basisorder == 0 || cfg->method == rtBLBadouelGrid) {
         for (i = 0; i < fieldlen; i++)
@@ -762,7 +743,7 @@ void mmc_run_cl(mcconfig *cfg, tetmesh *mesh, raytracer *tracer) {
   cudaFree(gweight);
   cudaFree(gdref);
   cudaFree(genergy);
-  cudaFree((int*)gprogress);
+  cudaFree((int *)gprogress);
   cudaFree(gdetected);
   if (gsrcpattern) cudaFree(gsrcpattern);
   cudaFree(greporter);

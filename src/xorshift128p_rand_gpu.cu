@@ -50,7 +50,7 @@ typedef uint64_t  GRandType;
  * We only use the 1st 32 random bits of the 64bit state for random number generation
  */
 
-__device__ float xorshift128p_nextf(GRandType t[RAND_BUF_LEN]){
+__device__ float gpu_xorshift128p_nextf(GRandType t[RAND_BUF_LEN]){
     union {
         ieee754_double dd;
         uint64_t i;
@@ -74,7 +74,7 @@ __device__ float xorshift128p_nextf(GRandType t[RAND_BUF_LEN]){
  * 64bit host seeds are computed by the host and are different for each thread
  */
 
-__device__ void xorshift128p_seed (uint seed[4],GRandType t[RAND_BUF_LEN])
+__device__ void gpu_xorshift128p_seed (uint seed[4],GRandType t[RAND_BUF_LEN])
 {
     t[0] = (uint64_t)seed[0] << 32 | seed[1];
     t[1] = (uint64_t)seed[2] << 32 | seed[3];
@@ -92,21 +92,19 @@ __device__ void copystate(GRandType *t, GRandType *tnew){
 /**
  * @brief Generate random number for the next zenith angle
  */
-__device__ void rand_need_more(GRandType t[RAND_BUF_LEN]){
-}
 
 /**
  * @brief Generate random floating point between 0 and 1
  */
 __device__ float rand_uniform01(GRandType t[RAND_BUF_LEN]){
-    return xorshift128p_nextf(t);
+    return gpu_xorshift128p_nextf(t);
 }
 
 /**
  * @brief Inteface function to initialize the RNG
  */
 __device__ void gpu_rng_init(GRandType t[RAND_BUF_LEN], uint *n_seed,int idx){
-    xorshift128p_seed((n_seed+idx*(sizeof(GRandType)>>2)*RAND_BUF_LEN),t);
+    gpu_xorshift128p_seed((n_seed+idx*(sizeof(GRandType)>>2)*RAND_BUF_LEN),t);
 }
 
 /**

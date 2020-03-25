@@ -72,7 +72,7 @@ endif
 
 CUCCOPT=-D__CUDA_ARCH__
 INCLUDEDIR+=$(INCLUDEDIRS)
-EXTRALIB+=$(LIBOPENCL)
+EXTRALIB+=$(LIBOPENCL) -L/usr/local/cuda/lib64 -lcudart
 
 NACL_SDK_ROOT ?= ../../../nacl
 OSNAME := $(shell echo $(PLATFORM) | tr A-Z a-z)
