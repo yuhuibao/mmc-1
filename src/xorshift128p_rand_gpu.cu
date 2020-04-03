@@ -96,7 +96,7 @@ __device__ void copystate(GRandType *t, GRandType *tnew){
 /**
  * @brief Generate random floating point between 0 and 1
  */
-__device__ float rand_uniform01(GRandType t[RAND_BUF_LEN]){
+__device__ float gpu_rand_uniform01(GRandType t[RAND_BUF_LEN]){
     return gpu_xorshift128p_nextf(t);
 }
 

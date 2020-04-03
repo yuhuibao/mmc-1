@@ -183,12 +183,12 @@ __device__ float clamp(float f, float a, float b) { return max(a, min(f, b)); }
 #define F32P(a) \
   ((a) ^ 0x80000000) /**<  Macro to test if a floating point is positive */
 
-int ifaceorder[] = {3, 0, 2, 1};
+int ifaceorder_gpu[] = {3, 0, 2, 1};
 //__constant int fc[4][3]={{0,4,2},{3,5,4},{2,5,1},{1,3,0}};
 //__constant int nc[4][3]={{3,0,1},{3,1,2},{2,0,3},{1,0,2}};
-int out[4][3] = {{0, 3, 1}, {3, 2, 1}, {0, 2, 3}, {0, 1, 2}};
-int facemap[] = {2, 0, 1, 3};
-int ifacemap[] = {1, 2, 0, 3};
+int out_gpu[4][3] = {{0, 3, 1}, {3, 2, 1}, {0, 2, 3}, {0, 1, 2}};
+int facemap_gpu[] = {2, 0, 1, 3};
+int ifacemap_gpu[] = {1, 2, 0, 3};
 
 #ifdef USE_ATOMIC
 
@@ -460,7 +460,7 @@ __device__ float reflectray(__constant MCXParam *gcfg, float3 *c0, int *oldeid,
   float Icos, Re, Im, Rtotal, tmp0, tmp1, tmp2, n1, n2;
   int offs = (*oldeid - 1) << 2;
 
-  faceid = ifaceorder[faceid];
+  faceid = ifaceorder_gpu[faceid];
   /*calculate the normal direction of the intersecting triangle*/
   pnorm.x = ((__constant float *)&(normal[offs]))[faceid];
   pnorm.y = ((__constant float *)&(normal[offs]))[faceid + 4];
@@ -807,14 +807,14 @@ __device__ void launchphoton(__constant MCXParam *gcfg, ray *r,
     int include = 1;
     constant int *elems = elem + (srcelem[is] - 1) * gcfg->elemlen;
     for (i = 0; i < 4; i++) {
-      ea = elems[out[i][0]] - 1;
-      eb = elems[out[i][1]] - 1;
-      ec = elems[out[i][2]] - 1;
+      ea = elems[out_gpu[i][0]] - 1;
+      eb = elems[out_gpu[i][1]] - 1;
+      ec = elems[out_gpu[i][2]] - 1;
       vecAB = node[eb] - node[ea];
       vecAC = node[ec] - node[ea];
       vecS = r->p0 - node[ea];
       vecN = cross(vecAB, vecAC);
-      bary[facemap[i]] = -dot(vecS, vecN);
+      bary[facemap_gpu[i]] = -dot(vecS, vecN);
     }
     for (i = 0; i < 4; i++) {
       if (bary[i] < -1e-4f) {
@@ -828,7 +828,7 @@ __device__ void launchphoton(__constant MCXParam *gcfg, ray *r,
         s += bary[i];
       }
       for (i = 0; i < 4; i++) {
-        if ((bary[i] / s) < 1e-4f) r->faceid = ifacemap[i] + 1;
+        if ((bary[i] / s) < 1e-4f) r->faceid = ifacemap_gpu[i] + 1;
       }
       break;
     }
