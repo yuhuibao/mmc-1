@@ -185,7 +185,7 @@ int mcx_list_gpu(mcconfig *cfg, GPUInfo **info) {
 #endif
 }
 
-void mmc_run_cl(mcconfig *cfg, tetmesh *mesh, raytracer *tracer) {
+void mmcx_run_simulation(mcconfig *cfg, tetmesh *mesh, raytracer *tracer,GPUInfo *gpu) {
   uint i, j, iter;
   float t, twindow0, twindow1;
   float fullload = 0.f;
@@ -225,7 +225,7 @@ void mmc_run_cl(mcconfig *cfg, tetmesh *mesh, raytracer *tracer) {
   uint detreclen = (2 + ((cfg->ismomentum) > 0)) * mesh->prop +
                    (cfg->issaveexit > 0) * 6 + 1;
   uint hostdetreclen = detreclen + 1;
-  GPUInfo *gpu = NULL;
+  
   float3 srcdir = make_float3(cfg->srcdir.x, cfg->srcdir.y, cfg->srcdir.z);
   MCXParam param = {cfg->srcpos,
                     srcdir,
@@ -273,11 +273,7 @@ void mmc_run_cl(mcconfig *cfg, tetmesh *mesh, raytracer *tracer) {
                     ((1 << cfg->nbuffer) - 1)};
 
   MCXReporter reporter = {0.f};
-  workdev = mcx_list_gpu(cfg, &gpu);
 
-  if (workdev > MAX_DEVICE) workdev = MAX_DEVICE;
-  if (workdev == 0)
-    mcx_error(-99, (char *)("Unable to find devices!"), __FILE__, __LINE__);
 #ifdef _OPENMP
   threadid = omp_get_thread_num();
 #endif
@@ -321,10 +317,10 @@ void mmc_run_cl(mcconfig *cfg, tetmesh *mesh, raytracer *tracer) {
   uint nflen = mesh->nf * cfg->maxgate;
   //#pragma omp master
   fullload = 0.f;
-  for (i = 0; i < workdev; i++) fullload += cfg->workload[i];
+  for (i = 0; i < cfg->deviceid[i]; i++) fullload += cfg->workload[i];
 
   if (fullload < EPS) {
-    for (i = 0; i < workdev; i++) cfg->workload[i] = gpu[i].core;
+    for (i = 0; i < cfg->deviceid[i]; i++) cfg->workload[i] = gpu[i].core;
     fullload = totalcucore;
   }
   //#pragma omp barrier

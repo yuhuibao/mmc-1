@@ -117,14 +117,14 @@ __device__ void gpu_rng_reseed(GRandType t[RAND_BUF_LEN],uint cpuseed[],uint idx
  * @brief Generate exponentially distributed unitless scattering length
  */
 __device__ float rand_next_scatlen(GRandType t[RAND_BUF_LEN]){
-    return -logf(rand_uniform01(t)+FLT_EPSILON);
+    return -logf(gpu_rand_uniform01(t)+FLT_EPSILON);
 }
 
 /**
  * @brief Generate a random 0-1 floating point for arzith angle calculation
  */
 __device__ float rand_next_aangle(GRandType t[RAND_BUF_LEN]){
-    return rand_uniform01(t);
+    return gpu_rand_uniform01(t);
 }
 
 /**

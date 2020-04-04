@@ -45,7 +45,8 @@ int main(int argc, char**argv){
 	mcconfig cfg;          /** cfg: structure to store all simulation parameters */
 	tetmesh mesh;          /** mesh: structure to store mesh information */
 	raytracer tracer;      /** tracer: structure to store  */
-
+    unsigned int activedev=0;
+    GPUInfo *gpu = NULL;
         /** 
            To start an MMC simulation, we first create a simulation configuration,
 	   initialize all elements to its default settings, and then set user-specified
@@ -65,8 +66,29 @@ int main(int argc, char**argv){
          */
 	if(cfg.gpuid>MAX_DEVICE)
             mmc_run_mp(&cfg,&mesh,&tracer);
-	else
-            mmc_run_cl(&cfg,&mesh,&tracer);
+	else{
+        if(!(activedev=mcx_list_gpu(&cfg,&gpu))){
+         mcx_error(-1,"No GPU device found\n",__FILE__,__LINE__);
+        }
+        #ifdef _OPENMP
+            /** 
+                Now we are ready to launch one thread for each involked GPU to run the simulation 
+            */
+            omp_set_num_threads(activedev);
+            #pragma omp parallel
+            {
+        #endif
+
+            /** 
+                This line runs the main MCX simulation for each GPU inside each thread 
+            */
+            mmcx_run_simulation(&cfg,&mesh,&tracer,gpu); 
+
+        #ifdef _OPENMP
+                }
+        #endif
+    }
+
 
 	/** 
            Once all photon simulations are complete, we clean up all allocated memory

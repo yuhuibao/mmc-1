@@ -60,7 +60,7 @@ typedef unsigned char uchar;
 
 
 
-void mmc_run_cl(mcconfig *cfg, tetmesh *mesh, raytracer *tracer);
+void mmcx_run_simulation(mcconfig *cfg, tetmesh *mesh, raytracer *tracer,GPUInfo *info);
 
 int mcx_list_gpu(mcconfig *cfg, GPUInfo **info);
 #ifdef  __cplusplus
