@@ -47,6 +47,8 @@ __global__ void mmc_main_loop(const int nphoton, const int ophoton,
                               medium *med, float4 *gdetpos, float *n_det,
                               uint *detectedphoton, uint *n_seed, int *progress,
                               float *energy, MCXReporter *reporter);
+                              
+__constant__ MCXParam gparam[1];
 
 /************************************************************************** In
 this unit, we first launch a master thread and initialize the necessary data
@@ -212,7 +214,7 @@ void mmcx_run_simulation(mcconfig *cfg, tetmesh *mesh, raytracer *tracer,GPUInfo
   float *gsrcpattern;
 
   medium *gproperty;
-  MCXParam *gparam;
+  
   MCXReporter *greporter;
   uint meshlen = ((cfg->method == rtBLBadouelGrid) ? cfg->crop0.z : mesh->ne)
                  << cfg->nbuffer;  // use 4 copies to reduce racing
@@ -296,13 +298,7 @@ void mmcx_run_simulation(mcconfig *cfg, tetmesh *mesh, raytracer *tracer,GPUInfo
   }
   //#pragma omp barrier
 
-  gpu[gpuid].autothread = cfg->nthread;
-  gpu[gpuid].autoblock = cfg->nblocksize;
-  gpu[gpuid].maxgate = cfg->maxgate;
-
-  if (gpu[gpuid].autothread % gpu[gpuid].autoblock)
-    gpu[gpuid].autothread =
-        (gpu[gpuid].autothread / gpu[gpuid].autoblock) * gpu[gpuid].autoblock;
+  
   if (gpu[gpuid].maxgate == 0 && meshlen > 0) {
     int needmem = meshlen + gpu[gpuid].autothread * sizeof(float4) * 4 +
                   sizeof(float) * cfg->maxdetphoton * hostdetreclen +
