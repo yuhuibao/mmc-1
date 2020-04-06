@@ -104,7 +104,8 @@ OBJS       := $(subst $(OBJDIR)/$(MMCSRC)/,$(MMCSRC)/,$(OBJS))
 OBJS       := $(addsuffix $(OBJSUFFIX), $(OBJS))
 CLSOURCE  := $(addsuffix $(CLHEADER), $(CLPROGRAM))
 
-release:   CCFLAGS+= -O3
+release:   CCFLAGS+= $(OPENMP) 
+release: ARFLAGS+= $(OPENMPLIB)
 sse ssemath mex oct mexsse octsse: CCFLAGS+= -DMMC_USE_SSE -DHAVE_SSE2 -msse -msse2 -msse3 -mssse3 -msse4.1
 sse ssemath omp mex oct mexsse octsse:   CCFLAGS+= -O3 $(OPENMP) $(FASTMATH)
 sse ssemath omp:   ARFLAGS+= $(OPENMPLIB) $(FASTMATH)
@@ -212,4 +213,4 @@ endif
 
 .PHONY: regression clean arch makedirs dep $(SUBDIRS)
 
-.DEFAULT_GOAL := sse
+##.DEFAULT_GOAL := sse
