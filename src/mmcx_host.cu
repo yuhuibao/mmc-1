@@ -346,10 +346,10 @@ void mmcx_run_simulation(mcconfig *cfg, tetmesh *mesh, raytracer *tracer,
          mcx_error(-1,"workload was unspecified for an active device",__FILE__,__LINE__);
 
   
-  threadphoton = (int)(cfg->nphoton * cfg->workload[i] /
+  threadphoton = (int)(cfg->nphoton * cfg->workload[gpuid] /
                        (fullload * gpu[gpuid].autothread * cfg->respin));
   oddphotons =
-      (int)(cfg->nphoton * cfg->workload[i] / (fullload * cfg->respin) -
+      (int)(cfg->nphoton * cfg->workload[gpuid] / (fullload * cfg->respin) -
             threadphoton * gpu[gpuid].autothread);
   field = (float *)calloc(sizeof(float) * meshlen, cfg->maxgate);
   dref = (float *)calloc(sizeof(float) * mesh->nf, cfg->maxgate);
